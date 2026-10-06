@@ -209,7 +209,7 @@ The problem evolved, so the design evolved. Per-process cache is fine for one in
 2. Anti-pattern: caching permissions (see the bug!)
 3. Anti-pattern: caching inventory (see the oversell!)
 4. Cache key granularity (see memory impact)
-5. Multiple servers: in-memory vs Redis (needs `docker compose up -d`)
+5. Multiple servers: in-memory vs Redis (run via `docker compose run --rm demo`, Redis included)
 ```
 
 Let audience choose which scenario to run live.

@@ -184,8 +184,39 @@ Let audience choose which scenario to run live.
 3. Cache key granularity affects memory and performance
 4. AI can implement cache, but humans must make design decisions
 
+**The fundamental truth about cache:**
+
+There is no silver bullet. No universal rule that says "always cache X" or "never cache Y."
+
+**The core trade-off:**
+
+Every caching decision is a trade-off between **speed** and **freshness**.
+
+- More caching → faster responses, but risk of stale data
+- Less caching → fresher data, but slower responses
+- The right balance depends on your business context
+
+**Context matters:**
+
+- E-commerce inventory? Freshness is critical → cache less
+- User profile avatars? Speed matters more → cache more
+- Financial transactions? Freshness is non-negotiable → cache carefully
+- Blog posts? Speed wins → cache aggressively
+
+**Common best practices:**
+
+- Cache read-heavy, write-rarely data
+- Use short TTLs for frequently-changing data
+- Invalidate on writes when consistency matters
+- Monitor hit rates and adjust
+- Consider memory costs vs. performance gains
+
+**The human judgment AI can't replace:**
+
+Understanding your business domain, user expectations, and failure modes. AI can implement any caching strategy you describe — but only you know what "stale" means for your users.
+
 **Call to action:**
-"Next time you add cache, ask: What am I caching? Why? For how long? What happens if it's stale?"
+"Next time you add cache, ask: What am I caching? Why? For how long? What happens if it's stale? And most importantly: what's the trade-off I'm making?"
 
 ---
 

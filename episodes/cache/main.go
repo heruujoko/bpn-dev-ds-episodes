@@ -1,4 +1,4 @@
-// Cache demo: an interactive menu that runs four cache scenarios.
+// Cache demo: an interactive menu that runs five cache scenarios.
 package main
 
 import (
@@ -24,6 +24,7 @@ func main() {
 		scenarios.PermissionsScenario{},
 		scenarios.InventoryScenario{},
 		scenarios.KeyGranularityScenario{},
+		scenarios.MultiServerScenario{},
 	}
 	in := bufio.NewReader(os.Stdin)
 

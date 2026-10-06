@@ -56,7 +56,7 @@ func PrintStats(hits, misses int64) {
 	if total := hits + misses; total > 0 {
 		ratio = float64(hits) / float64(total) * 100
 	}
-	fmt.Printf("Stats: %d hits, %d misses, %.0f%% hit ratio\n", hits, misses, ratio)
+	fmt.Printf("Stats: %d hit(s), %d miss(es), %.0f%% hit ratio\n", hits, misses, ratio)
 }
 
 // PrintSeparator prints a visual divider.

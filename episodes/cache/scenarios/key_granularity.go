@@ -12,8 +12,10 @@ import (
 // KeyGranularityScenario compares three ways to key the same user data.
 type KeyGranularityScenario struct{}
 
-func (KeyGranularityScenario) Name() string        { return "Cache key granularity comparison" }
-func (KeyGranularityScenario) Description() string { return "Too granular vs too coarse vs balanced keys" }
+func (KeyGranularityScenario) Name() string { return "Cache key granularity comparison" }
+func (KeyGranularityScenario) Description() string {
+	return "Too granular vs too coarse vs balanced keys"
+}
 
 const users = 10000
 

@@ -29,9 +29,9 @@ Total: 1500ms
 **With cache:**
 ```
 Request 1: 500ms (cache miss, hit DB, store in cache)
-Request 2: 2ms   (cache hit)
-Request 3: 2ms   (cache hit)
-Total: 504ms
+Request 2: ~0ms  (cache hit, well under 1ms)
+Request 3: ~0ms  (cache hit)
+Total: ~500ms
 ```
 
 **Demo mechanics:**
@@ -119,7 +119,7 @@ Keys created:
 - user:123:address
 
 For 10,000 users: 50,000 keys
-Memory: ~5MB
+Memory: ~6.3MB (estimate)   Hit rate: 88% (simulated)
 ```
 
 **Problem:** Memory bloat. Redis overhead per key adds up.
@@ -131,7 +131,7 @@ Keys created:
 - user:123 (entire user object)
 
 For 10,000 users: 10,000 keys
-Memory: ~2MB
+Memory: ~4.0MB (estimate)   Hit rate: 81% (simulated)
 ```
 
 **Problem:** Update email → invalidate entire user cache. High invalidation cost.
@@ -144,8 +144,10 @@ Keys created:
 - user:123:contact (phone, address)
 
 For 10,000 users: 20,000 keys
-Memory: ~3MB
+Memory: ~5.5MB (estimate)   Hit rate: 83% (simulated)
 ```
+
+> Numbers come from the demo's own model (64 B/entry overhead assumed; 80% reads / 20% email updates), not a real Redis. Say so on stage. Note the honest result: granular wins on hit rate and loses on memory, coarse is the opposite, balanced sits between. No strategy wins everything.
 
 **Benefit:** Update email → invalidate only profile. Reasonable memory.
 
@@ -159,17 +161,55 @@ Cache key design is a trade-off between memory, hit rate, and invalidation compl
 
 ---
 
-## Scene 4: Interactive Demo — You Decide (3 min)
+## Scene 4: The Plot Twist — What If We Have Multiple Servers? (5 min)
+
+**Transition question (say it out loud, then pause):**
+"Everything so far ran in ONE process. The cache was a map in that process's memory. Your app just got popular and you now run 2 servers behind a load balancer. Is memory-based cache still sufficient?"
+
+**Setup:**
+- Two "servers" (A and B), each with its OWN in-memory cache
+- One shared database
+- Load balancer sends the read to A, the update to B
+
+**Part 1 — in-memory, per-server cache:**
+```
+1. Read profile via A  -> miss, loads "Alice", A caches it
+2. Update name via B   -> DB = "Alicia", B invalidates ITS cache
+3. Read profile via A  -> HIT, returns "Alice"   ❌ stale, B can't reach A's memory
+```
+Also visible: each server warms its own cache (N servers = N cold starts, N copies in RAM).
+
+**Part 2 — evolve: shared cache (Redis):**
+```
+1. Read via A          -> miss, loads "Alice", stored in Redis
+2. Update via B        -> DB = "Alicia", B deletes the key in Redis
+3. Read via A          -> miss, reloads "Alicia"  ✓ fresh
+```
+Same code, same invalidation call. Only WHERE the cache lives changed.
+
+**The new trade-offs Redis brings (don't oversell it):**
+- Network hop on every hit (~sub-ms, not ~0)
+- New moving part that can be down: what does the app do when Redis is unreachable?
+- Serialization cost, and a new place to get key design wrong
+- Still not a silver bullet: stale reads are possible between the DB write and the delete
+
+**Key takeaway:**
+The problem evolved, so the design evolved. Per-process cache is fine for one instance or for data where staleness is harmless. The moment correctness depends on every server seeing the same cache, you need shared state, and you pay for it.
+
+*(Sets up the Load Balancing episode: this is the question that episode starts from.)*
+
+---
+
+## Scene 5: Interactive Demo — You Decide (3 min)
 
 **Menu-driven scenarios:**
 
 ```
-1. Run slow query without cache
-2. Run slow query with cache
-3. Try caching user permissions (see the bug!)
-4. Try caching inventory (see the oversell!)
-5. Compare cache key strategies (see memory impact)
-6. Show hit/miss statistics
+1. Cache makes things fast (happy path)
+2. Anti-pattern: caching permissions (see the bug!)
+3. Anti-pattern: caching inventory (see the oversell!)
+4. Cache key granularity (see memory impact)
+5. Multiple servers: in-memory vs Redis (needs `docker compose up -d`)
 ```
 
 Let audience choose which scenario to run live.
@@ -183,6 +223,7 @@ Let audience choose which scenario to run live.
 2. Don't cache: security data, real-time data, one-time reads
 3. Cache key granularity affects memory and performance
 4. AI can implement cache, but humans must make design decisions
+5. Where the cache lives matters: per-process memory stops being enough once you have more than one server
 
 **The fundamental truth about cache:**
 

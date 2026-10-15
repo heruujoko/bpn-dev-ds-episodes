@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implement interactive Go console application with 4 cache scenarios demonstrating patterns, anti-patterns, and design trade-offs.
+Implemented interactive Go console application with 5 cache scenarios demonstrating patterns, anti-patterns, design trade-offs, and how the design evolves from per-process memory to shared Redis.
 
 ## Task Breakdown
 
@@ -16,6 +16,9 @@ Implement interactive Go console application with 4 cache scenarios demonstratin
 - `episodes/cache/scenarios/inventory.go`
 - `episodes/cache/scenarios/key_granularity.go`
 - `episodes/cache/utils/display.go`
+- `episodes/cache/scenarios/multi_server.go`
+- `episodes/cache/Dockerfile`
+- `episodes/cache/docker-compose.yml`
 - `episodes/cache/README.md`
 
 **Action:**
@@ -307,23 +310,23 @@ Implement interactive Go console application with 4 cache scenarios demonstratin
 
 ## Acceptance Criteria
 
-- [ ] `go run main.go` launches interactive menu
-- [ ] All 4 scenarios run without errors
-- [ ] Scenario 1 shows clear performance improvement
-- [ ] Scenario 2 shows security bug visibly
-- [ ] Scenario 3 shows oversell bug visibly
-- [ ] Scenario 4 shows memory comparison clearly
-- [ ] Output uses visual indicators (✓ ✗ ⚠ ❌)
-- [ ] Code is well-commented for presentation
-- [ ] README explains how to run
-- [ ] Total implementation time < 2 hours
+- [x] `go run .` launches the interactive menu
+- [x] All 5 scenarios are implemented
+- [x] Scenario 1 shows clear performance improvement
+- [x] Scenario 2 shows security bug visibly
+- [x] Scenario 3 shows deterministic oversell visibly
+- [x] Scenario 4 shows labelled memory/hit-rate estimates
+- [x] Scenario 5 shows why per-server memory goes stale and how shared Redis invalidation resolves it
+- [x] Output uses visual indicators (✓ ✗ ⚠ ❌)
+- [x] Cache and multi-server logic have unit tests
+- [x] README makes Docker the only participant prerequisite
+- [ ] Pre-talk Docker smoke test: `docker compose run --rm demo`, then run scenario 5 against Redis
 
 ---
 
 ## Out of Scope
 
-- Redis integration
 - LRU eviction
-- Distributed cache scenarios
-- Performance benchmarking
-- Unit tests for scenarios (only cache core gets tests)
+- Cache stampede prevention
+- Production-grade Redis outage, fallback, and retry policy
+- Benchmarking a real production dataset

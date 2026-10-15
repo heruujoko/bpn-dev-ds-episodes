@@ -10,17 +10,17 @@ Interactive Go console application demonstrating cache patterns, anti-patterns, 
 
 ```
 episodes/cache/
-├── main.go              # Entry point, interactive menu
-├── cache/
-│   ├── memory.go        # In-memory cache implementation
-│   └── stats.go         # Hit/miss tracking
+├── main.go                    # Entry point and interactive menu
+├── cache/memory.go            # In-memory cache, TTL, stats, size estimate
 ├── scenarios/
-│   ├── happy_path.go    # Slow query with/without cache
-│   ├── permissions.go   # Anti-pattern: cached permissions
-│   ├── inventory.go     # Anti-pattern: cached inventory
-│   └── key_granularity.go # Cache key design comparison
-└── utils/
-    └── display.go       # Console formatting helpers
+│   ├── happy_path.go          # Slow query with/without cache
+│   ├── permissions.go         # Anti-pattern: cached permissions
+│   ├── inventory.go           # Anti-pattern: cached inventory
+│   ├── key_granularity.go     # Cache-key design comparison
+│   └── multi_server.go        # Per-server memory vs shared Redis
+├── utils/display.go           # Console formatting helpers
+├── Dockerfile                 # Static binary in a scratch image
+└── docker-compose.yml         # Demo + Redis, Docker-only setup
 ```
 
 ### Core Components
@@ -80,6 +80,7 @@ func main() {
         &PermissionsScenario{},
         &InventoryScenario{},
         &KeyGranularityScenario{},
+        &MultiServerScenario{},
     }
     
     for {
@@ -281,44 +282,43 @@ Recommendation: Strategy 3 balances memory, hit rate, and invalidation complexit
 4. Add memory usage estimation
 5. Write unit tests
 
-### Phase 2: Scenarios (45 min)
+### Phase 2: Scenarios
 1. Implement `HappyPathScenario`
 2. Implement `PermissionsScenario`
 3. Implement `InventoryScenario`
 4. Implement `KeyGranularityScenario`
+5. Implement `MultiServerScenario`: the same server logic first uses two separate in-memory stores (stale read), then a shared Redis store (fresh read)
 
-### Phase 3: UI & Polish (15 min)
-1. Create interactive menu in `main.go`
-2. Add console formatting helpers
-3. Add visual indicators (✓ ✗ ⚠ ❌)
-4. Test all scenarios end-to-end
+### Phase 3: Docker-only delivery
+1. Build a static binary with Go's alpine image and run it from `scratch`
+2. Run Redis from its official alpine image with a healthcheck
+3. Configure Compose so `docker compose run --rm demo` waits for Redis and opens the interactive menu
 
-### Phase 4: Documentation (10 min)
-1. Add README.md with run instructions
-2. Add inline code comments
-3. Create demo script for presentation
+### Phase 4: UI, test, and documentation
+1. Add console formatting helpers and visual indicators (✓ ✗ ⚠ ❌)
+2. Unit-test cache operations and both multi-server outcomes using in-memory stores
+3. Add README run instructions and a pre-talk Docker smoke-test command
 
 ## Acceptance Criteria
 
-- [ ] App runs with `go run main.go`
-- [ ] Menu displays all 4 scenarios
-- [ ] Each scenario runs without errors
-- [ ] Output clearly shows cache hits/misses
-- [ ] Anti-patterns demonstrate visible bugs
-- [ ] Key granularity shows memory comparison
-- [ ] Code is well-commented for presentation
-- [ ] README explains how to run
+- [x] Menu displays all 5 scenarios
+- [x] Scenarios 1–4 run without dependencies beyond Go
+- [x] Scenario 5 fails safely with a clear instruction when Redis is unavailable
+- [x] The per-server-memory flow visibly produces a stale read; the shared-store flow has unit-test coverage for a fresh read
+- [x] Output clearly shows cache hits/misses and anti-pattern bugs
+- [x] Key granularity shows labelled estimates, not fabricated Redis measurements
+- [x] Docker Compose is the documented participant path; its image uses a static binary and `scratch` runtime
+- [ ] Pre-talk smoke test: run `docker compose run --rm demo`, choose scenario 5, and confirm the shared Redis path live
 
 ## Out of Scope
 
-- Redis integration (future enhancement)
 - LRU eviction (too complex for this demo)
-- Distributed cache scenarios
-- Performance benchmarking
+- Cache stampede prevention
+- Performance benchmarks beyond the illustrative scenario timings
+- Production-grade Redis outage, retry, or fallback policy
 
 ## Future Enhancements
 
-- Add Redis-backed cache option
 - Add cache stampede demonstration
 - Add cache warming scenario
 - Add visualization (charts/graphs)

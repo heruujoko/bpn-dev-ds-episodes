@@ -25,11 +25,14 @@ func allowByUserID(l *limiter.FixedWindow, userID string) bool {
 	return ok
 }
 
-func loginKey(account, ip string) string { return "login:" + account + ":" + ip }
-
+// allowLoginAttempt applies TWO separate limits: one per target account (stops guessing
+// one account from many IPs) and one per IP (stops one IP spraying many accounts).
+// A single combined key "login:<account>:<ip>" would give an attacker a fresh budget
+// for every new IP, so the account would be unprotected again.
 func allowLoginAttempt(l *limiter.FixedWindow, account, ip string) bool {
-	ok, _ := l.Allow(loginKey(account, ip))
-	return ok
+	accountOK, _ := l.Allow("login:account:" + account)
+	ipOK, _ := l.Allow("login:ip:" + ip)
+	return accountOK && ipOK
 }
 
 func (KeyChoiceScenario) Run() error {
@@ -62,23 +65,24 @@ func (KeyChoiceScenario) Run() error {
 	utils.PrintCritical(fmt.Sprintf("%d password attempts for alice@example.com allowed: no user ID means no limit.", allowed))
 	utils.PrintSeparator()
 
-	fmt.Println("3. Login by target account plus IP: limit 10/min")
+	fmt.Println("3. Login: separate limits per target account AND per IP, 10/min each")
+	fmt.Println("   Attacker rotates through 20 IPs (botnet), all aimed at alice@example.com")
 	balanced := limiter.NewFixedWindow(10, time.Minute, clock)
 	allowed, blocked = 0, 0
-	for range 20 {
-		if allowLoginAttempt(balanced, "alice@example.com", "203.0.113.7") {
+	for i := range 20 {
+		if allowLoginAttempt(balanced, "alice@example.com", fmt.Sprintf("198.51.100.%d", i+1)) {
 			allowed++
 		} else {
 			blocked++
 		}
 	}
 	utils.PrintSuccess(fmt.Sprintf("Attempts allowed: %d", allowed))
-	utils.PrintError(fmt.Sprintf("Attempts blocked: %d for key %q", blocked, loginKey("alice@example.com", "203.0.113.7")))
+	utils.PrintError(fmt.Sprintf("Attempts blocked: %d by the per-account limit (new IPs don't reset it)", blocked))
 	fmt.Println()
 	fmt.Println("Balanced keys:")
 	fmt.Println("Endpoint                 Key                    Why")
 	fmt.Println("Authenticated API        user ID / API key      fair per customer, not per network")
-	fmt.Println("Login                    target account + IP    stops password guessing on one account")
+	fmt.Println("Login                    account, and IP        two separate limits, not one combined key")
 	fmt.Println("Public signup / search   IP (generous limit)    the only identity available")
 	return nil
 }

@@ -121,14 +121,16 @@ Limit by user ID → no key → no limit
 Attacker tries 1,000 passwords for alice@example.com: all allowed ❌
 ```
 
-**Lesson:** Unauthenticated endpoints need a different key, e.g. the **target account** (`login:alice@example.com`) plus the IP.
+**Lesson:** Unauthenticated endpoints need a different key: two **separate** limits, one per **target account** (`login:account:alice@example.com`) and one per **IP** (`login:ip:203.0.113.7`).
+
+**Trap (the one AI tends to generate):** one combined key `login:<account>:<ip>`. It looks stricter, but every new IP gets a fresh budget, so a botnet rotating IPs guesses Alice's password freely. Keep the two limits separate.
 
 ### Balanced
 
 | Endpoint | Key | Why |
 |---|---|---|
 | Authenticated API | user ID / API key | fair per customer, not per network |
-| Login | target account + IP | stops password guessing on one account |
+| Login | per target account, and separately per IP | account limit stops guessing one account from many IPs; IP limit stops one IP spraying many accounts |
 | Public signup / search | IP (generous limit) | the only identity available |
 
 **Key takeaway:**

@@ -45,6 +45,7 @@ func (NoLimitScenario) Run() error {
 	started := make(chan struct{}, capacity)
 	var workers sync.WaitGroup
 	var mu sync.Mutex
+	var botStarts int
 	botSlots, aliceSlots := 0, 0
 
 	for range capacity {
@@ -59,7 +60,13 @@ func (NoLimitScenario) Run() error {
 				}
 				slots <- struct{}{}
 				if r.client == "bot" {
-					started <- struct{}{}
+					mu.Lock()
+					botStarts++
+					firstFive := botStarts <= capacity
+					mu.Unlock()
+					if firstFive {
+						started <- struct{}{}
+					}
 				}
 				time.Sleep(work)
 				<-slots

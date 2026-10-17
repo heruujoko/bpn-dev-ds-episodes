@@ -18,7 +18,7 @@ type Scenario interface {
 }
 
 func main() {
-	list := []Scenario{scenarios.NoLimitScenario{}, scenarios.FixedWindowScenario{}, scenarios.TokenBucketScenario{}}
+	list := []Scenario{scenarios.NoLimitScenario{}, scenarios.FixedWindowScenario{}, scenarios.TokenBucketScenario{}, scenarios.KeyChoiceScenario{}}
 	in := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Println("=== Rate Limit Design System Episodes ===")

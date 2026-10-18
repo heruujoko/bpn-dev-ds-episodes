@@ -1,0 +1,20 @@
+# Usage: docker compose run --rm demo     (interactive menu)
+#        docker compose down              (clean up)
+services:
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  demo:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_ADDR: redis:6379
+    stdin_open: true
+    tty: true

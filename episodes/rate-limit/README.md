@@ -23,6 +23,7 @@ Set `NO_COLOR=1` to disable ANSI colors.
 3. **Token bucket** - allows a burst of five while enforcing one-token-per-second refill afterward.
 4. **Choosing the key: IP vs user vs account** - IP blocks office colleagues, empty user IDs bypass login limits, and target-account-plus-IP blocks guessing.
 5. **Multiple servers: in-memory vs Redis** - three in-memory counters allow 15 requests through a limit of five; a shared Redis counter allows five.
+6. **Scaling out: local counters vs centralized Redis** - routing makes local limits over- or under-enforce; a shared Redis counter stays at five.
 
 ## Learning objectives
 

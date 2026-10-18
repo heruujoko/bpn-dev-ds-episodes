@@ -37,6 +37,14 @@ Main reviews the integrated diff and runs:
 
 Commit only verified working files and push this branch. Do not create a PR or merge. At the timebox boundary, stop and record remaining work here; do not publish broken scaffolding.
 
+## Completed checkpoint
+
+- Storyboard/design/plan pushed first in `7c8a8f5`.
+- Routing tests initially failed before implementation, then passed with race detection; vet passed.
+- Docker build and both menu scenarios passed: 12/0/0 baseline, 4/4/4 round-robin, 6/4/2 weighted.
+- Five invalid-input/EOF smoke cases passed. Image reported 2.39 MB on this machine.
+- Only the two approved examples implemented. Resume with a separately approved next slice.
+
 ## Deferred
 
 Unequal-duration workloads, adaptive routing, health checks, sticky sessions, and actual HTTP backends. These require a separate approved slice. No work on those today.

@@ -176,7 +176,37 @@ Same lesson as cache: state that lived in one process has to move to a shared pl
 
 ---
 
-## Scene 6: Interactive Demo — You Decide (2 min)
+## Scene 6: Growing Up — Scaling Out Breaks the Local Counter (4 min)
+
+> New demo file: `scenarios/scale_out.go` (menu item 6). Scene 5 stays as-is, so the two can be compared side by side during the session.
+
+**Where we are:**
+In-memory counters were the right start: one server, zero dependencies, instant and easy to test. Don't add Redis on day one.
+
+**The challenge (callback to Episode 1):**
+"Remember the cache plot twist? We scaled horizontally again: 3 servers behind a load balancer. The counter still lives in each server's memory. The limit says 5. How many requests get through?"
+
+Pause. Then: "It depends on the load balancer. That's the problem."
+
+**One table, three routings, three counter strategies (bot sends 15, limit 5):**
+```
+                         round-robin   weighted 3:2:1   sticky (all → A)
+Local, 5 per server        15/15 ✗        11/15 ✗          5/15 ✓
+Local, 5÷3 → 1 per server   3/15 ✗         3/15 ✗          1/15 ✗
+Redis, 5 shared             5/15 ✓         5/15 ✓          5/15 ✓
+```
+
+**Read it row by row:**
+1. **Local, 5 per server:** the effective limit is "5 × whatever servers this client happens to hit". Round-robin gives 15 and weighted gives 11. Sticky gives 5, correct only by luck. Autoscale to 6 servers and round-robin allows 30. **Your rate limit is now whatever your load balancer decides.**
+2. **"Just divide by N":** the plausible-looking fix AI will happily generate. 5÷3 rounds down to 1, so legitimate users get 3 instead of 5, or just 1 with sticky routing. N also changes on every deploy and autoscale event. It moves the bug instead of fixing it.
+3. **Redis, shared:** the only row that doesn't change with routing. The limit is policy again, not a side effect of infrastructure.
+
+**Key takeaway — the pattern across episodes:**
+Start in memory when it meets your requirements. When a policy needs a global view across servers, coordinate its state—here, with Redis. Local caches and per-server protection limits can still be useful; they simply do not enforce a shared per-client quota by themselves. As in Episode 1, the shared place costs a network hop and a new dependency, so add it for a concrete requirement, not automatically.
+
+---
+
+## Scene 7: Interactive Demo — You Decide (2 min)
 
 **Menu-driven scenarios:**
 ```
@@ -185,6 +215,7 @@ Same lesson as cache: state that lived in one process has to move to a shared pl
 3. Token bucket
 4. Choosing the key: IP vs user vs account
 5. Multiple servers: in-memory vs Redis (run via `docker compose run --rm demo`, Redis included)
+6. Scaling out: local counters vs centralized Redis, across 3 load-balancer routings
 ```
 
 ---

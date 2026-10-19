@@ -653,28 +653,60 @@
         </div>
         <div class="slide-content">
           <!-- Left: Without Cache -->
-          <div class="card highlight-coral" style="flex: 1;">
-            <div class="card-header-label">
-              <span class="dot" style="background: var(--accent-coral);"></span>
-              Without Cache (3 Repeat Queries)
+          <div class="card highlight-coral" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-coral);"></span>
+                Without Cache (3 Repeat Queries)
+              </div>
+              <div id="s2-left-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--accent-coral); background: var(--accent-coral-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-coral-border);">
+                Req #1: Fetching DB
+              </div>
             </div>
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <div class="step-box bad">
+
+            <!-- SVG Motion Canvas (Without Cache) -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 6px 10px; margin-bottom: 12px;">
+              <svg id="s2-left-svg" viewBox="0 0 540 90" width="100%" height="90" style="overflow: visible;">
+                <path d="M 85 45 L 210 45" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="4 4" />
+                <path d="M 310 45 L 435 45" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="4 4" />
+                
+                <!-- Client Node -->
+                <rect x="15" y="18" width="70" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="50" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-main)">Client</text>
+                <text x="50" y="57" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Browser</text>
+
+                <!-- App Server Node -->
+                <rect x="210" y="18" width="100" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="260" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-main)">App Server</text>
+                <text x="260" y="57" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Repeats Query</text>
+
+                <!-- Database Node -->
+                <rect x="435" y="18" width="85" height="54" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" />
+                <text x="477" y="40" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--accent-coral)">Database</text>
+                <text x="477" y="53" text-anchor="middle" font-family="var(--font-mono)" font-size="9" font-weight="700" fill="var(--accent-coral)">Disk I/O</text>
+                <text x="477" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--text-dim)">500ms delay</text>
+
+                <g id="s2-left-particles"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 8px;">
+              <div id="s2-left-step-1" class="step-box bad" style="transition: all 0.2s;">
                 <span style="font-family: var(--font-mono); font-weight: 800;">Req #1</span>
                 <span>Client &rarr; App &rarr; Database (Disk I/O)</span>
                 <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
               </div>
-              <div class="step-box bad">
+              <div id="s2-left-step-2" class="step-box bad" style="transition: all 0.2s;">
                 <span style="font-family: var(--font-mono); font-weight: 800;">Req #2</span>
                 <span>Client &rarr; App &rarr; Database (Repeat query)</span>
                 <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
               </div>
-              <div class="step-box bad">
+              <div id="s2-left-step-3" class="step-box bad" style="transition: all 0.2s;">
                 <span style="font-family: var(--font-mono); font-weight: 800;">Req #3</span>
                 <span>Client &rarr; App &rarr; Database (Repeat query)</span>
                 <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-card);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-card);">
                 <span style="color: var(--text-muted); font-weight: 600;">Total Latency:</span>
                 <span class="metric-badge"><span class="val" style="color: var(--accent-coral);">1,500</span><span class="unit">ms</span></span>
               </div>
@@ -682,28 +714,61 @@
           </div>
 
           <!-- Right: With Cache -->
-          <div class="card highlight-green" style="flex: 1;">
-            <div class="card-header-label">
-              <span class="dot" style="background: var(--accent-green);"></span>
-              With Cache (1 Miss, 2 Hits)
+          <div class="card highlight-green" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-green);"></span>
+                With Cache (1 Miss, 2 Hits)
+              </div>
+              <div id="s2-right-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-green-border);">
+                Req #1: Cache MISS
+              </div>
             </div>
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <div class="step-box warn">
+
+            <!-- SVG Motion Canvas (With Cache) -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 6px 10px; margin-bottom: 12px;">
+              <svg id="s2-right-svg" viewBox="0 0 540 90" width="100%" height="90" style="overflow: visible;">
+                <path d="M 85 45 L 195 45" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="4 4" />
+                <path id="s2-db-track" d="M 325 45 L 435 45" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4 4" />
+                
+                <!-- Client Node -->
+                <rect x="15" y="18" width="70" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="50" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-main)">Client</text>
+                <text x="50" y="57" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Browser</text>
+
+                <!-- Cache (RAM) Node -->
+                <rect id="s2-cache-box" x="195" y="15" width="130" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="260" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="800" fill="var(--text-main)">CACHE (RAM)</text>
+                <text id="s2-cache-sub" x="260" y="53" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--text-dim)">Cold / Empty</text>
+                <text x="260" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--accent-green)">&lt;1ms instant return</text>
+
+                <!-- Database Node -->
+                <rect id="s2-db-box" x="435" y="18" width="85" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="477" y="40" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-muted)">Database</text>
+                <text x="477" y="53" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Disk I/O</text>
+                <text x="477" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--text-dim)">500ms delay</text>
+
+                <g id="s2-right-particles"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 8px;">
+              <div id="s2-right-step-1" class="step-box warn" style="transition: all 0.2s;">
                 <span style="font-family: var(--font-mono); font-weight: 800;">Req #1</span>
                 <span>Cache Miss &rarr; Fetch DB &rarr; Store in RAM</span>
                 <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-amber);">500</span><span class="unit">ms</span></span>
               </div>
-              <div class="step-box good">
+              <div id="s2-right-step-2" class="step-box good" style="transition: all 0.2s;">
                 <span style="font-family: var(--font-mono); font-weight: 800;">Req #2</span>
                 <span>Cache Hit &rarr; Returned directly from RAM</span>
                 <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-green);">&lt;1</span><span class="unit">ms</span></span>
               </div>
-              <div class="step-box good">
+              <div id="s2-right-step-3" class="step-box good" style="transition: all 0.2s;">
                 <span style="font-family: var(--font-mono); font-weight: 800;">Req #3</span>
                 <span>Cache Hit &rarr; Returned directly from RAM</span>
                 <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-green);">&lt;1</span><span class="unit">ms</span></span>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-card);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-card);">
                 <span style="color: var(--text-muted); font-weight: 600;">Total Latency:</span>
                 <span class="metric-badge"><span class="val" style="color: var(--accent-green);">~500</span><span class="unit">ms (3x faster)</span></span>
               </div>
@@ -713,14 +778,11 @@
         <div class="speaker-note-content" style="display:none;">
           <p><strong>Scene 1: Happy Path (Console Demo 1):</strong></p>
           <p>"Your app feels sluggish. You add cache. It feels instant. Total time drops from 1500ms to 500ms."</p>
-          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 1 in `episodes/cache`</div>
+          <div class="notes-code-cue">CUE: Run  -> Option 1 in </div>
           <p>"Cache is simply avoiding repeated work. Identify expensive operations that return the same result."</p>
         </div>
       </section>
 
-      <!-- ===================================================================
-           SLIDE 3: Episode 1 (Cache) - What NOT to Cache
-           =================================================================== -->
       <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="3">
         <div class="slide-header">
           <h2 class="slide-title">What <span style="color: var(--accent-coral);">NOT</span> to Cache: Anti-Patterns</h2>
@@ -1115,49 +1177,96 @@
           <p class="slide-subtitle">Opening the Load Balancer box: cyclic routing across identical instances. Equal requests &ne; equal work.</p>
         </div>
         <div class="slide-content">
-          <!-- Left: Diagram -->
-          <div class="card" style="flex: 1.2;">
-            <div class="card-header-label">
-              <span class="dot" style="background: var(--accent-blue);"></span>
-              12 Incoming Requests &rarr; 3 Identical Nodes
-            </div>
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <!-- Cyclic assignment animation strip -->
-              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 16px; font-family: var(--font-mono); font-size: 14px;">
-                <div style="color: var(--text-muted); margin-bottom: 10px; font-weight: 700;">// Cyclic Sequence: A &rarr; B &rarr; C</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">1:A</span>
-                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">2:B</span>
-                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">3:C</span>
-                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">4:A</span>
-                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">5:B</span>
-                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">6:C</span>
-                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">7:A</span>
-                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">8:B</span>
-                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">9:C</span>
-                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">10:A</span>
-                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">11:B</span>
-                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">12:C</span>
-                </div>
+          <!-- Left: Diagram with Looped Dot Animation -->
+          <div class="card" style="flex: 1.35; padding: 22px 26px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                Load Balancer Node: Cyclic Round-Robin Loop
               </div>
+              <div id="s8-status-badge" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent-blue); background: var(--accent-blue-dim); padding: 5px 14px; border-radius: 999px; border: 1px solid var(--accent-blue-border);">
+                Routing: Req #1 &rarr; Node A
+              </div>
+            </div>
 
-              <!-- Node Cards -->
-              <div style="display: flex; gap: 14px;">
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-blue);">
-                  <div class="label" style="color: var(--accent-blue);">Backend A</div>
-                  <div class="number">4</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">requests (33.3%)</div>
-                </div>
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green);">
-                  <div class="label" style="color: var(--accent-green);">Backend B</div>
-                  <div class="number">4</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">requests (33.3%)</div>
-                </div>
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-purple);">
-                  <div class="label" style="color: var(--accent-purple);">Backend C</div>
-                  <div class="number">4</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">requests (33.3%)</div>
-                </div>
+            <!-- SVG Routing Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 14px; padding: 10px; margin-bottom: 12px; position: relative;">
+              <svg id="s8-svg" viewBox="0 0 880 300" width="100%" height="300" style="overflow: visible;">
+                <!-- Track lines -->
+                <path d="M 125 150 L 320 150" fill="none" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s8-track-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s8-track-b" d="M 440 150 L 620 150" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s8-track-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+
+                <!-- Active path glowing highlight tracks -->
+                <path id="s8-glow-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#bfdbfe" stroke-width="5" opacity="0.2" />
+                <path id="s8-glow-b" d="M 440 150 L 620 150" fill="none" stroke="#bbf7d0" stroke-width="5" opacity="0.2" />
+                <path id="s8-glow-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#e9d5ff" stroke-width="5" opacity="0.2" />
+
+                <!-- Client Node -->
+                <g transform="translate(15, 105)">
+                  <rect width="110" height="90" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="55" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#64748b" letter-spacing="0.05em">CLIENT</text>
+                  <text x="55" y="65" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">12 Reqs</text>
+                </g>
+
+                <!-- Load Balancer Center Node -->
+                <g transform="translate(320, 95)">
+                  <rect id="s8-lb-box" width="120" height="110" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5" />
+                  <circle cx="60" cy="35" r="16" fill="#2563eb" />
+                  <text x="60" y="41" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">⚖</text>
+                  <text x="60" y="72" text-anchor="middle" font-size="11" font-weight="800" fill="#1e40af" letter-spacing="0.05em">LOAD BALANCER</text>
+                  <text id="s8-lb-sub" x="60" y="92" text-anchor="middle" font-size="12" font-weight="800" fill="#2563eb">&rarr; Node A</text>
+                </g>
+
+                <!-- Backend A -->
+                <g id="s8-backend-a" transform="translate(620, 10)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#bfdbfe" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#2563eb" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#2563eb" letter-spacing="0.05em">BACKEND A</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s8-count-a">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Backend B -->
+                <g id="s8-backend-b" transform="translate(620, 110)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#bbf7d0" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#16a34a" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#16a34a" letter-spacing="0.05em">BACKEND B</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s8-count-b">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Backend C -->
+                <g id="s8-backend-c" transform="translate(620, 210)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#e9d5ff" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#7c3aed" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#7c3aed" letter-spacing="0.05em">BACKEND C</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s8-count-c">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Flying Dots Layer -->
+                <g id="s8-particles-layer"></g>
+              </svg>
+            </div>
+
+            <!-- Cyclic assignment strip -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 12px 16px; font-family: var(--font-mono); font-size: 13px;">
+              <div style="color: var(--text-muted); margin-bottom: 8px; font-weight: 700; font-size: 12px;">// Cyclic Sequence: A &rarr; B &rarr; C (Looped 12 requests)</div>
+              <div id="s8-tokens-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <span class="s8-tok" data-i="1" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">1:A</span>
+                <span class="s8-tok" data-i="2" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">2:B</span>
+                <span class="s8-tok" data-i="3" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">3:C</span>
+                <span class="s8-tok" data-i="4" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">4:A</span>
+                <span class="s8-tok" data-i="5" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">5:B</span>
+                <span class="s8-tok" data-i="6" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">6:C</span>
+                <span class="s8-tok" data-i="7" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">7:A</span>
+                <span class="s8-tok" data-i="8" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">8:B</span>
+                <span class="s8-tok" data-i="9" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">9:C</span>
+                <span class="s8-tok" data-i="10" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">10:A</span>
+                <span class="s8-tok" data-i="11" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">11:B</span>
+                <span class="s8-tok" data-i="12" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">12:C</span>
               </div>
             </div>
           </div>
@@ -1201,33 +1310,96 @@
           <p class="slide-subtitle">Unequal servers need proportional scheduling (A:3, B:2, C:1). But routing traffic is NOT moving state.</p>
         </div>
         <div class="slide-content">
-          <!-- Left: Weighted Schedule -->
-          <div class="card highlight-blue" style="flex: 1.1;">
-            <div class="card-header-label" style="color: var(--accent-blue);">
-              <span class="dot" style="background: var(--accent-blue);"></span>
-              Schedule: [A, A, A, B, B, C] &times; 2 Cycles
-            </div>
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <div style="display: flex; gap: 14px;">
-                <div class="metric-tile" style="flex: 3; text-align: center; border-top: 4px solid var(--accent-blue);">
-                  <div class="label" style="color: var(--accent-blue);">Node A (Weight 3)</div>
-                  <div class="number" style="color: var(--accent-blue);">6</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">requests (50%)</div>
-                </div>
-                <div class="metric-tile" style="flex: 2; text-align: center; border-top: 4px solid var(--accent-green);">
-                  <div class="label" style="color: var(--accent-green);">Node B (Weight 2)</div>
-                  <div class="number" style="color: var(--accent-green);">4</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">requests (33%)</div>
-                </div>
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-purple);">
-                  <div class="label" style="color: var(--accent-purple);">Node C (Weight 1)</div>
-                  <div class="number" style="color: var(--accent-purple);">2</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">requests (17%)</div>
-                </div>
+          <!-- Left: Weighted Schedule with Looped Dot Animation -->
+          <div class="card highlight-blue" style="flex: 1.35; padding: 22px 26px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-blue);">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                Weighted Load Balancer: [3, 2, 1] Capacity Ratio
               </div>
+              <div id="s9-status-badge" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent-blue); background: var(--accent-blue-dim); padding: 5px 14px; border-radius: 999px; border: 1px solid var(--accent-blue-border);">
+                Schedule: [A, A, A, B, B, C]
+              </div>
+            </div>
 
-              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 8px; padding: 12px; font-family: var(--font-mono); font-size: 13px; color: var(--text-muted);">
-                Weights match known hardware capacity (e.g., 8-core vs 4-core vs 2-core instances).
+            <!-- SVG Routing Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 14px; padding: 10px; margin-bottom: 12px; position: relative;">
+              <svg id="s9-svg" viewBox="0 0 880 300" width="100%" height="300" style="overflow: visible;">
+                <!-- Track lines -->
+                <path d="M 125 150 L 320 150" fill="none" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s9-track-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s9-track-b" d="M 440 150 L 620 150" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s9-track-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+
+                <!-- Active path glowing highlight tracks -->
+                <path id="s9-glow-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#bfdbfe" stroke-width="5" opacity="0.2" />
+                <path id="s9-glow-b" d="M 440 150 L 620 150" fill="none" stroke="#bbf7d0" stroke-width="5" opacity="0.2" />
+                <path id="s9-glow-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#e9d5ff" stroke-width="5" opacity="0.2" />
+
+                <!-- Client Node -->
+                <g transform="translate(15, 105)">
+                  <rect width="110" height="90" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="55" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#64748b" letter-spacing="0.05em">CLIENT</text>
+                  <text x="55" y="65" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">12 Reqs</text>
+                </g>
+
+                <!-- Load Balancer Center Node -->
+                <g transform="translate(320, 95)">
+                  <rect id="s9-lb-box" width="120" height="110" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5" />
+                  <circle cx="60" cy="35" r="16" fill="#2563eb" />
+                  <text x="60" y="41" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">⚖</text>
+                  <text x="60" y="72" text-anchor="middle" font-size="11" font-weight="800" fill="#1e40af" letter-spacing="0.05em">WEIGHTED LB</text>
+                  <text id="s9-lb-sub" x="60" y="92" text-anchor="middle" font-size="12" font-weight="800" fill="#2563eb">Schedule: 3:2:1</text>
+                </g>
+
+                <!-- Backend A (Weight 3) -->
+                <g id="s9-backend-a" transform="translate(620, 10)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#bfdbfe" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#2563eb" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#2563eb" letter-spacing="0.05em">NODE A (WEIGHT 3)</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s9-count-a">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (50.0%)</text>
+                </g>
+
+                <!-- Backend B (Weight 2) -->
+                <g id="s9-backend-b" transform="translate(620, 110)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#bbf7d0" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#16a34a" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#16a34a" letter-spacing="0.05em">NODE B (WEIGHT 2)</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s9-count-b">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Backend C (Weight 1) -->
+                <g id="s9-backend-c" transform="translate(620, 210)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#e9d5ff" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#7c3aed" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#7c3aed" letter-spacing="0.05em">NODE C (WEIGHT 1)</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s9-count-c">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (16.7%)</text>
+                </g>
+
+                <!-- Flying Dots Layer -->
+                <g id="s9-particles-layer"></g>
+              </svg>
+            </div>
+
+            <!-- Cyclic assignment strip -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 12px 16px; font-family: var(--font-mono); font-size: 13px;">
+              <div style="color: var(--text-muted); margin-bottom: 8px; font-weight: 700; font-size: 12px;">// Weighted Sequence: [A, A, A, B, B, C] &times; 2 (Looped 12 requests)</div>
+              <div id="s9-tokens-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <span class="s9-tok" data-i="1" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">1:A</span>
+                <span class="s9-tok" data-i="2" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">2:A</span>
+                <span class="s9-tok" data-i="3" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">3:A</span>
+                <span class="s9-tok" data-i="4" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">4:B</span>
+                <span class="s9-tok" data-i="5" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">5:B</span>
+                <span class="s9-tok" data-i="6" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">6:C</span>
+                <span class="s9-tok" data-i="7" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">7:A</span>
+                <span class="s9-tok" data-i="8" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">8:A</span>
+                <span class="s9-tok" data-i="9" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">9:A</span>
+                <span class="s9-tok" data-i="10" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">10:B</span>
+                <span class="s9-tok" data-i="11" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">11:B</span>
+                <span class="s9-tok" data-i="12" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">12:C</span>
               </div>
             </div>
           </div>
@@ -1653,7 +1825,7 @@
           return;
         }
 
-        slides[currentIndex].classList.remove('active');
+        slides.forEach(s => s.classList.remove('active'));
         currentIndex = index;
         const activeSlide = slides[currentIndex];
         activeSlide.classList.add('active');
@@ -1673,6 +1845,486 @@
         // Update Notes
         const noteSource = activeSlide.querySelector('.speaker-note-content');
         notesBody.innerHTML = noteSource ? noteSource.innerHTML : '<p style="color:var(--text-muted)">No notes for this slide.</p>';
+
+        // Trigger or stop Looped Animations
+        if (currentIndex === 1) {
+          startSlide2Loop();
+        } else if (currentIndex === 7) {
+          startSlide8Loop();
+        } else if (currentIndex === 8) {
+          startSlide9Loop();
+        } else {
+          stopAllAnimations();
+        }
+      }
+
+      // -------------------------------------------------------------
+      // Load Balancer Looped Animation Controllers (Slides 8 & 9)
+      // -------------------------------------------------------------
+      let s8AnimTimer = null;
+      let s9AnimTimer = null;
+
+      function getBezierPoint(t, p0, p1, p2, p3) {
+        const cx = 3 * (p1.x - p0.x);
+        const bx = 3 * (p2.x - p1.x) - cx;
+        const ax = p3.x - p0.x - cx - bx;
+        const cy = 3 * (p1.y - p0.y);
+        const by = 3 * (p2.y - p1.y) - cy;
+        const ay = p3.y - p0.y - cy - by;
+        const xt = ax * (t*t*t) + bx * (t*t) + cx * t + p0.x;
+        const yt = ay * (t*t*t) + by * (t*t) + cy * t + p0.y;
+        return { x: xt, y: yt };
+      }
+
+      // -------------------------------------------------------------
+      // Cache Concept Looped Animation Controller (Slide 2)
+      // -------------------------------------------------------------
+      let s2AnimTimer = null;
+      let s2Timeouts = [];
+
+      function clearS2Timeouts() {
+        s2Timeouts.forEach(t => clearTimeout(t));
+        s2Timeouts = [];
+      }
+
+      function stopSlide2Loop() {
+        if (s2AnimTimer) { clearInterval(s2AnimTimer); s2AnimTimer = null; }
+        clearS2Timeouts();
+        const lp = document.getElementById('s2-left-particles');
+        if (lp) lp.innerHTML = '';
+        const rp = document.getElementById('s2-right-particles');
+        if (rp) rp.innerHTML = '';
+      }
+
+      function stopAllAnimations() {
+        stopSlide2Loop();
+        if (s8AnimTimer) { clearInterval(s8AnimTimer); s8AnimTimer = null; }
+        if (s9AnimTimer) { clearInterval(s9AnimTimer); s9AnimTimer = null; }
+        const p8 = document.getElementById('s8-particles-layer');
+        if (p8) p8.innerHTML = '';
+        const p9 = document.getElementById('s9-particles-layer');
+        if (p9) p9.innerHTML = '';
+      }
+
+      function startSlide2Loop() {
+        stopAllAnimations();
+        const s2 = document.querySelector('section[data-index="2"]');
+        if (!s2 || !s2.classList.contains('active')) return;
+
+        const leftBadge = document.getElementById('s2-left-badge');
+        const rightBadge = document.getElementById('s2-right-badge');
+        const cacheBox = document.getElementById('s2-cache-box');
+        const cacheSub = document.getElementById('s2-cache-sub');
+        const leftLayer = document.getElementById('s2-left-particles');
+        const rightLayer = document.getElementById('s2-right-particles');
+
+        const lSteps = [
+          document.getElementById('s2-left-step-1'),
+          document.getElementById('s2-left-step-2'),
+          document.getElementById('s2-left-step-3')
+        ];
+        const rSteps = [
+          document.getElementById('s2-right-step-1'),
+          document.getElementById('s2-right-step-2'),
+          document.getElementById('s2-right-step-3')
+        ];
+
+        function resetVisuals() {
+          if (leftLayer) leftLayer.innerHTML = '';
+          if (rightLayer) rightLayer.innerHTML = '';
+          if (leftBadge) {
+            leftBadge.textContent = 'Req #1: Fetching DB';
+            leftBadge.style.color = 'var(--accent-coral)';
+          }
+          if (rightBadge) {
+            rightBadge.textContent = 'Req #1: Cache MISS';
+            rightBadge.style.color = 'var(--accent-amber)';
+          }
+          if (cacheBox) {
+            cacheBox.setAttribute('stroke', '#cbd5e1');
+            cacheBox.setAttribute('fill', '#ffffff');
+          }
+          if (cacheSub) {
+            cacheSub.textContent = 'Cold / Empty';
+            cacheSub.style.fill = 'var(--text-dim)';
+          }
+          lSteps.forEach(s => { if (s) { s.style.boxShadow = ''; s.style.borderColor = ''; } });
+          rSteps.forEach(s => { if (s) { s.style.boxShadow = ''; s.style.borderColor = ''; } });
+        }
+
+        function createDot(layer, color, x, y) {
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '7');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))');
+          layer.appendChild(circle);
+          return circle;
+        }
+
+        function animateLeftReq(reqNum, delay) {
+          s2Timeouts.push(setTimeout(() => {
+            const s2Active = document.querySelector('section[data-index="2"]');
+            if (!s2Active || !s2Active.classList.contains('active')) return;
+
+            if (leftBadge) {
+              leftBadge.textContent = 'Req #' + reqNum + ': Fetching DB (500ms)';
+            }
+            lSteps.forEach((s, idx) => {
+              if (s) {
+                if (idx === reqNum - 1) {
+                  s.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+                  s.style.borderColor = 'var(--accent-coral)';
+                } else {
+                  s.style.boxShadow = '';
+                  s.style.borderColor = '';
+                }
+              }
+            });
+
+            if (!leftLayer) return;
+            const dot = createDot(leftLayer, '#ea580c', 50, 45);
+            const startTime = performance.now();
+            const forwardDuration = 450;
+            const returnDuration = 350;
+
+            function step(now) {
+              const el = now - startTime;
+              if (el < forwardDuration) {
+                const p = el / forwardDuration;
+                dot.setAttribute('cx', 50 + (477 - 50) * p);
+                requestAnimationFrame(step);
+              } else if (el < forwardDuration + returnDuration) {
+                const p = (el - forwardDuration) / returnDuration;
+                dot.setAttribute('cx', 477 - (477 - 50) * p);
+                requestAnimationFrame(step);
+              } else {
+                dot.remove();
+              }
+            }
+            requestAnimationFrame(step);
+          }, delay));
+        }
+
+        function animateRightReq(reqNum, delay, isMiss) {
+          s2Timeouts.push(setTimeout(() => {
+            const s2Active = document.querySelector('section[data-index="2"]');
+            if (!s2Active || !s2Active.classList.contains('active')) return;
+
+            rSteps.forEach((s, idx) => {
+              if (s) {
+                if (idx === reqNum - 1) {
+                  s.style.boxShadow = isMiss ? '0 0 0 2px var(--accent-amber)' : '0 0 0 2px var(--accent-green)';
+                  s.style.borderColor = isMiss ? 'var(--accent-amber)' : 'var(--accent-green)';
+                } else {
+                  s.style.boxShadow = '';
+                  s.style.borderColor = '';
+                }
+              }
+            });
+
+            if (isMiss) {
+              if (rightBadge) {
+                rightBadge.textContent = 'Req #1: Cache MISS → Fetching DB';
+                rightBadge.style.color = 'var(--accent-amber)';
+              }
+              if (cacheSub) {
+                cacheSub.textContent = 'MISS! (Not in RAM)';
+                cacheSub.style.fill = 'var(--accent-amber)';
+              }
+              if (!rightLayer) return;
+              const dot = createDot(rightLayer, '#d97706', 50, 45);
+              const startTime = performance.now();
+              const toDb = 450;
+              const returnToClient = 350;
+
+              function step(now) {
+                const el = now - startTime;
+                if (el < toDb) {
+                  const p = el / toDb;
+                  dot.setAttribute('cx', 50 + (477 - 50) * p);
+                  requestAnimationFrame(step);
+                } else if (el < toDb + returnToClient) {
+                  const p = (el - toDb) / returnToClient;
+                  dot.setAttribute('cx', 477 - (477 - 50) * p);
+                  if (p > 0.5 && cacheBox && cacheSub) {
+                    cacheBox.setAttribute('stroke', '#16a34a');
+                    cacheBox.setAttribute('fill', '#f0fdf4');
+                    cacheSub.textContent = 'Warm / In RAM';
+                    cacheSub.style.fill = '#16a34a';
+                  }
+                  requestAnimationFrame(step);
+                } else {
+                  dot.remove();
+                }
+              }
+              requestAnimationFrame(step);
+            } else {
+              if (rightBadge) {
+                rightBadge.textContent = 'Req #' + reqNum + ': Cache HIT (<1ms)';
+                rightBadge.style.color = 'var(--accent-green)';
+              }
+              if (cacheSub) {
+                cacheSub.textContent = 'HIT! Returned from RAM';
+                cacheSub.style.fill = '#16a34a';
+              }
+              if (!rightLayer) return;
+              const dot = createDot(rightLayer, '#16a34a', 50, 45);
+              const startTime = performance.now();
+              const toCache = 160;
+              const returnToClient = 160;
+
+              function step(now) {
+                const el = now - startTime;
+                if (el < toCache) {
+                  const p = el / toCache;
+                  dot.setAttribute('cx', 50 + (260 - 50) * p);
+                  requestAnimationFrame(step);
+                } else if (el < toCache + returnToClient) {
+                  const p = (el - toCache) / returnToClient;
+                  dot.setAttribute('cx', 260 - (260 - 50) * p);
+                  requestAnimationFrame(step);
+                } else {
+                  dot.remove();
+                }
+              }
+              requestAnimationFrame(step);
+            }
+          }, delay));
+        }
+
+        function runCycle() {
+          const s2Active = document.querySelector('section[data-index="2"]');
+          if (!s2Active || !s2Active.classList.contains('active')) {
+            stopSlide2Loop();
+            return;
+          }
+          clearS2Timeouts();
+          resetVisuals();
+
+          animateLeftReq(1, 100);
+          animateRightReq(1, 100, true);
+
+          animateLeftReq(2, 1300);
+          animateRightReq(2, 1300, false);
+
+          animateLeftReq(3, 2500);
+          animateRightReq(3, 2500, false);
+        }
+
+        runCycle();
+        s2AnimTimer = setInterval(runCycle, 4000);
+      }
+
+      function startSlide8Loop() {
+        stopAllAnimations();
+        const targets = ['A', 'B', 'C'];
+        const colors = { A: '#2563eb', B: '#16a34a', C: '#7c3aed' };
+        let reqIndex = 0;
+        let cA = 0, cB = 0, cC = 0;
+
+        const countAEl = document.getElementById('s8-count-a');
+        const countBEl = document.getElementById('s8-count-b');
+        const countCEl = document.getElementById('s8-count-c');
+        const badge = document.getElementById('s8-status-badge');
+        const sub = document.getElementById('s8-lb-sub');
+        const layer = document.getElementById('s8-particles-layer');
+        const tokens = document.querySelectorAll('.s8-tok');
+
+        function resetCounts() {
+          cA = 0; cB = 0; cC = 0;
+          if (countAEl) countAEl.textContent = '0';
+          if (countBEl) countBEl.textContent = '0';
+          if (countCEl) countCEl.textContent = '0';
+          tokens.forEach(tok => {
+            tok.style.background = '#ffffff';
+            tok.style.color = 'var(--text-muted)';
+            tok.style.borderColor = 'var(--border-card)';
+          });
+        }
+        resetCounts();
+
+        function spawn() {
+          const s8 = document.querySelector('section[data-index="8"]');
+          if (!s8 || !s8.classList.contains('active')) {
+            stopLoadBalancerAnimations();
+            return;
+          }
+          reqIndex++;
+          const curReq = ((reqIndex - 1) % 12) + 1;
+          const target = targets[(curReq - 1) % 3];
+          const color = colors[target];
+
+          if (badge) {
+            badge.innerHTML = 'Routing: Req #' + curReq + ' &rarr; <span style="color:'+color+'">Node ' + target + '</span>';
+          }
+          if (sub) {
+            sub.textContent = '→ Node ' + target;
+            sub.style.fill = color;
+          }
+
+          tokens.forEach(tok => {
+            if (tok.getAttribute('data-i') === String(curReq)) {
+              tok.style.background = color;
+              tok.style.color = '#ffffff';
+              tok.style.borderColor = color;
+            }
+          });
+
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '8');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', '125');
+          circle.setAttribute('cy', '150');
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
+          if (layer) layer.appendChild(circle);
+
+          const startTime = performance.now();
+          const t1 = 350;
+          const t2 = 450;
+
+          function step(now) {
+            const el = now - startTime;
+            if (el < t1) {
+              const p = el / t1;
+              circle.setAttribute('cx', 125 + (380 - 125) * p);
+              circle.setAttribute('cy', 150);
+              requestAnimationFrame(step);
+            } else if (el < t1 + t2) {
+              const p = (el - t1) / t2;
+              let pt;
+              if (target === 'B') {
+                pt = { x: 380 + (620 - 380) * p, y: 150 };
+              } else if (target === 'A') {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:50}, {x:620,y:50});
+              } else {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:250}, {x:620,y:250});
+              }
+              circle.setAttribute('cx', pt.x);
+              circle.setAttribute('cy', pt.y);
+              requestAnimationFrame(step);
+            } else {
+              circle.remove();
+              if (target === 'A') { cA++; if (countAEl) countAEl.textContent = cA; }
+              else if (target === 'B') { cB++; if (countBEl) countBEl.textContent = cB; }
+              else if (target === 'C') { cC++; if (countCEl) countCEl.textContent = cC; }
+
+              if (curReq === 12) {
+                setTimeout(resetCounts, 800);
+              }
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        spawn();
+        s8AnimTimer = setInterval(spawn, 600);
+      }
+
+      function startSlide9Loop() {
+        stopAllAnimations();
+        const schedule = ['A', 'A', 'A', 'B', 'B', 'C', 'A', 'A', 'A', 'B', 'B', 'C'];
+        const colors = { A: '#2563eb', B: '#16a34a', C: '#7c3aed' };
+        let reqIndex = 0;
+        let cA = 0, cB = 0, cC = 0;
+
+        const countAEl = document.getElementById('s9-count-a');
+        const countBEl = document.getElementById('s9-count-b');
+        const countCEl = document.getElementById('s9-count-c');
+        const badge = document.getElementById('s9-status-badge');
+        const sub = document.getElementById('s9-lb-sub');
+        const layer = document.getElementById('s9-particles-layer');
+        const tokens = document.querySelectorAll('.s9-tok');
+
+        function resetCounts() {
+          cA = 0; cB = 0; cC = 0;
+          if (countAEl) countAEl.textContent = '0';
+          if (countBEl) countBEl.textContent = '0';
+          if (countCEl) countCEl.textContent = '0';
+          tokens.forEach(tok => {
+            tok.style.background = '#ffffff';
+            tok.style.color = 'var(--text-muted)';
+            tok.style.borderColor = 'var(--border-card)';
+          });
+        }
+        resetCounts();
+
+        function spawn() {
+          const s9 = document.querySelector('section[data-index="9"]');
+          if (!s9 || !s9.classList.contains('active')) {
+            stopLoadBalancerAnimations();
+            return;
+          }
+          reqIndex++;
+          const curReq = ((reqIndex - 1) % 12) + 1;
+          const target = schedule[curReq - 1];
+          const color = colors[target];
+
+          if (badge) {
+            badge.innerHTML = 'Routing: Req #' + curReq + ' &rarr; <span style="color:'+color+'">Node ' + target + '</span>';
+          }
+          if (sub) {
+            sub.textContent = '→ Node ' + target;
+            sub.style.fill = color;
+          }
+
+          tokens.forEach(tok => {
+            if (tok.getAttribute('data-i') === String(curReq)) {
+              tok.style.background = color;
+              tok.style.color = '#ffffff';
+              tok.style.borderColor = color;
+            }
+          });
+
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '8');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', '125');
+          circle.setAttribute('cy', '150');
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
+          if (layer) layer.appendChild(circle);
+
+          const startTime = performance.now();
+          const t1 = 350;
+          const t2 = 450;
+
+          function step(now) {
+            const el = now - startTime;
+            if (el < t1) {
+              const p = el / t1;
+              circle.setAttribute('cx', 125 + (380 - 125) * p);
+              circle.setAttribute('cy', 150);
+              requestAnimationFrame(step);
+            } else if (el < t1 + t2) {
+              const p = (el - t1) / t2;
+              let pt;
+              if (target === 'B') {
+                pt = { x: 380 + (620 - 380) * p, y: 150 };
+              } else if (target === 'A') {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:50}, {x:620,y:50});
+              } else {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:250}, {x:620,y:250});
+              }
+              circle.setAttribute('cx', pt.x);
+              circle.setAttribute('cy', pt.y);
+              requestAnimationFrame(step);
+            } else {
+              circle.remove();
+              if (target === 'A') { cA++; if (countAEl) countAEl.textContent = cA; }
+              else if (target === 'B') { cB++; if (countBEl) countBEl.textContent = cB; }
+              else if (target === 'C') { cC++; if (countCEl) countCEl.textContent = cC; }
+
+              if (curReq === 12) {
+                setTimeout(resetCounts, 800);
+              }
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        spawn();
+        s9AnimTimer = setInterval(spawn, 600);
       }
 
       function nextSlide() {
@@ -1708,6 +2360,13 @@
           card.style.transform = 'scale(0.98)';
           setTimeout(() => { card.style.transform = ''; }, 150);
         });
+        if (currentIndex === 1) {
+          startSlide2Loop();
+        } else if (currentIndex === 7) {
+          startSlide8Loop();
+        } else if (currentIndex === 8) {
+          startSlide9Loop();
+        }
       }
 
       // 3. Keyboard Event Handlers
@@ -1749,8 +2408,16 @@
         notesCloseBtn.addEventListener('click', toggleNotes);
       }
 
-      // Initialize slide 0
-      goToSlide(0);
+      // Initialize slide from hash or default to 0
+      let initialSlide = 0;
+      try {
+        const h = window.location.hash;
+        if (h) {
+          const n = parseInt(h.replace('#', ''), 10);
+          if (!isNaN(n) && n >= 1 && n <= totalSlides) initialSlide = n - 1;
+        }
+      } catch (e) {}
+      goToSlide(initialSlide);
 
     })();
   </script>

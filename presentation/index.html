@@ -1446,7 +1446,7 @@
         </div>
         <div class="slide-content">
           <!-- Left: State Table & Meaning -->
-          <div class="card" style="flex: 1;">
+          <div class="card" style="flex: 0.95; padding: 22px 24px;">
             <div class="card-header-label">
               <span class="dot" style="background: var(--accent-blue);"></span>
               The Three States
@@ -1461,64 +1461,99 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td style="color: var(--accent-green);">● CLOSED</td>
+                  <tr id="s10-row-closed" style="transition: all 0.3s;">
+                    <td style="color: var(--accent-green); font-weight: 700;">● CLOSED</td>
                     <td>Circuit connected</td>
                     <td>Calls flow normally to partner</td>
                   </tr>
-                  <tr>
-                    <td style="color: var(--accent-coral);">● OPEN</td>
+                  <tr id="s10-row-open" style="transition: all 0.3s;">
+                    <td style="color: var(--accent-coral); font-weight: 700;">● OPEN</td>
                     <td>Circuit broken</td>
                     <td>Fail fast immediately; 0 wait</td>
                   </tr>
-                  <tr>
-                    <td style="color: var(--accent-amber);">● HALF-OPEN</td>
+                  <tr id="s10-row-half" style="transition: all 0.3s;">
+                    <td style="color: var(--accent-amber); font-weight: 700;">● HALF-OPEN</td>
                     <td>Testing loop</td>
                     <td>Send 1 probe test call to check health</td>
                   </tr>
                 </tbody>
               </table>
 
-              <div style="background: var(--bg-subtle); border-left: 4px solid var(--accent-blue); padding: 12px; font-size: 14px; color: var(--text-body);">
+              <div id="s10-insight-box" style="background: var(--bg-subtle); border-left: 4px solid var(--accent-blue); padding: 14px 16px; border-radius: 4px 8px 8px 4px; font-size: 14px; color: var(--text-body); transition: all 0.3s;">
                 <strong>Key Insight:</strong> OPEN is our system actively protecting itself from slow hangs.
               </div>
             </div>
           </div>
 
-          <!-- Right: State Machine Cycle -->
-          <div class="card highlight-blue" style="flex: 1;">
-            <div class="card-header-label" style="color: var(--accent-blue);">
-              <span class="dot" style="background: var(--accent-blue);"></span>
-              State Transition Cycle
+          <!-- Right: Animated State Machine Cycle -->
+          <div class="card highlight-blue" style="flex: 1.25; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-blue);">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                State Transition Cycle
+              </div>
+              <div id="s10-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-green-border); transition: all 0.2s;">
+                STATE: CLOSED (Normal)
+              </div>
             </div>
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
-              <div style="display: flex; align-items: center; gap: 20px; width: 100%; justify-content: center;">
-                <div style="background: var(--accent-green-dim); border: 2px solid var(--accent-green); border-radius: 12px; padding: 14px 24px; text-align: center;">
-                  <div style="font-weight: 800; color: var(--accent-green);">CLOSED</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">Normal Traffic</div>
-                </div>
-                <div style="color: var(--accent-coral); font-family: var(--font-mono); font-size: 12px; text-align: center; font-weight: 700;">
-                  &rarr; 3 Failures &rarr;
-                </div>
-                <div style="background: var(--accent-coral-dim); border: 2px solid var(--accent-coral); border-radius: 12px; padding: 14px 24px; text-align: center;">
-                  <div style="font-weight: 800; color: var(--accent-coral);">OPEN</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">Block &amp; Fail Fast</div>
-                </div>
-              </div>
 
-              <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="color: var(--accent-amber); font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px; font-weight: 700;">
-                  &darr; Cooldown expires (30s)
-                </div>
-                <div style="background: var(--accent-amber-dim); border: 2px solid var(--accent-amber); border-radius: 12px; padding: 14px 30px; text-align: center;">
-                  <div style="font-weight: 800; color: var(--accent-amber);">HALF-OPEN</div>
-                  <div style="font-size: 11px; color: var(--text-muted);">Admit 1 Test Probe Call</div>
-                </div>
-                <div style="display: flex; justify-content: space-between; width: 80%; margin-top: 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 700;">
-                  <span style="color: var(--accent-green);">&larr; Probe Succeeds</span>
-                  <span style="color: var(--accent-coral);">Probe Fails &rarr;</span>
-                </div>
-              </div>
+            <!-- SVG State Diagram with Motion -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 14px; padding: 16px; flex: 1; display: flex; align-items: center; justify-content: center;">
+              <svg id="s10-svg" viewBox="0 0 760 440" width="100%" height="440" style="overflow: visible;">
+                <defs>
+                  <marker id="arrow-coral" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--accent-coral)" />
+                  </marker>
+                  <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--accent-amber)" />
+                  </marker>
+                  <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--accent-green)" />
+                  </marker>
+                </defs>
+
+                <!-- Transition Path 1: CLOSED -> OPEN (Top curve) -->
+                <path id="s10-path-to-open" d="M 260 105 C 370 50, 410 50, 500 105" fill="none" stroke="var(--accent-coral)" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow-coral)" />
+                <rect x="310" y="45" width="160" height="28" rx="8" fill="#ffffff" stroke="var(--accent-coral-border)" stroke-width="1.5" />
+                <text x="390" y="63" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">&rarr; 3 Failures &rarr;</text>
+
+                <!-- Transition Path 2: OPEN -> HALF-OPEN (Right curve) -->
+                <path id="s10-path-to-half" d="M 610 175 C 610 270, 540 335, 500 335" fill="none" stroke="var(--accent-amber)" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow-amber)" />
+                <rect x="520" y="225" width="170" height="28" rx="8" fill="#ffffff" stroke="var(--accent-amber-border)" stroke-width="1.5" />
+                <text x="605" y="243" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-amber)">Cooldown (30s) &darr;</text>
+
+                <!-- Transition Path 3: HALF-OPEN -> CLOSED (Left curve up) -->
+                <path id="s10-path-to-closed" d="M 260 335 C 220 335, 150 270, 150 175" fill="none" stroke="var(--accent-green)" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow-green)" />
+                <rect x="70" y="225" width="170" height="28" rx="8" fill="#ffffff" stroke="var(--accent-green-border)" stroke-width="1.5" />
+                <text x="155" y="243" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-green)">&larr; Probe Succeeds</text>
+
+                <!-- NODE 1: CLOSED -->
+                <g id="s10-node-closed" transform="translate(50, 60)" style="cursor: default;">
+                  <rect id="s10-box-closed" width="210" height="105" rx="16" fill="var(--accent-green-dim)" stroke="var(--accent-green)" stroke-width="3" filter="drop-shadow(0 6px 14px rgba(22,163,74,0.18))" />
+                  <text x="105" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="22" font-weight="900" fill="var(--accent-green)">CLOSED</text>
+                  <text id="s10-sub-closed" x="105" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="var(--text-muted)">Normal Traffic Flow</text>
+                  <text id="s10-fail-count" x="105" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)"></text>
+                </g>
+
+                <!-- NODE 2: OPEN -->
+                <g id="s10-node-open" transform="translate(500, 60)" style="cursor: default;">
+                  <rect id="s10-box-open" width="210" height="105" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="105" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="22" font-weight="900" fill="var(--text-muted)">OPEN</text>
+                  <text id="s10-sub-open" x="105" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="var(--text-dim)">Block &amp; Fail Fast</text>
+                  <text id="s10-open-sub" x="105" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--accent-coral)">0ms wait / protect</text>
+                </g>
+
+                <!-- NODE 3: HALF-OPEN -->
+                <g id="s10-node-half" transform="translate(260, 280)" style="cursor: default;">
+                  <rect id="s10-box-half" width="240" height="105" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="120" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="22" font-weight="900" fill="var(--text-muted)">HALF-OPEN</text>
+                  <text id="s10-sub-half" x="120" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="var(--text-dim)">Admit 1 Test Probe Call</text>
+                  <text id="s10-half-sub" x="120" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--accent-amber)">Concurrent calls rejected</text>
+                </g>
+
+                <!-- Moving particles / pulse layer -->
+                <g id="s10-particles-layer"></g>
+              </svg>
             </div>
           </div>
         </div>
@@ -1530,9 +1565,6 @@
         </div>
       </section>
 
-      <!-- ===================================================================
-           SLIDE 11: Episode 4 (Circuit Breaker) - The Wrong Boundary
-           =================================================================== -->
       <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="11">
         <div class="slide-header">
           <h2 class="slide-title">The Wrong Boundary: <span style="color: var(--accent-coral);">1 Shared Breaker Kills All Couriers</span></h2>
@@ -1853,6 +1885,10 @@
           startSlide8Loop();
         } else if (currentIndex === 8) {
           startSlide9Loop();
+        } else if (currentIndex === 9) {
+          startSlide10Loop();
+        } else if (currentIndex === 9) {
+          startSlide10Loop();
         } else {
           stopAllAnimations();
         }
@@ -1877,6 +1913,178 @@
       }
 
       // -------------------------------------------------------------
+      // Circuit Breaker State Machine Animation Controller (Slide 10)
+      // -------------------------------------------------------------
+      let s10AnimTimer = null;
+      let s10Timeouts = [];
+
+      function clearS10Timeouts() {
+        s10Timeouts.forEach(t => clearTimeout(t));
+        s10Timeouts = [];
+      }
+
+      function stopSlide10Loop() {
+        if (s10AnimTimer) { clearInterval(s10AnimTimer); s10AnimTimer = null; }
+        clearS10Timeouts();
+        const lp = document.getElementById('s10-particles-layer');
+        if (lp) lp.innerHTML = '';
+      }
+
+      function startSlide10Loop() {
+        stopAllAnimations();
+        const s10 = document.querySelector('section[data-index="10"]');
+        if (!s10 || !s10.classList.contains('active')) return;
+
+        const badge = document.getElementById('s10-badge');
+        const boxClosed = document.getElementById('s10-box-closed');
+        const boxOpen = document.getElementById('s10-box-open');
+        const boxHalf = document.getElementById('s10-box-half');
+        const failCount = document.getElementById('s10-fail-count');
+        const layer = document.getElementById('s10-particles-layer');
+
+        const rowClosed = document.getElementById('s10-row-closed');
+        const rowOpen = document.getElementById('s10-row-open');
+        const rowHalf = document.getElementById('s10-row-half');
+
+        function setActiveVisual(state) {
+          if (boxClosed) {
+            boxClosed.setAttribute('fill', state === 'closed' ? 'var(--accent-green-dim)' : '#ffffff');
+            boxClosed.setAttribute('stroke', state === 'closed' ? 'var(--accent-green)' : '#cbd5e1');
+            boxClosed.setAttribute('stroke-width', state === 'closed' ? '3' : '2');
+            boxClosed.setAttribute('filter', state === 'closed' ? 'drop-shadow(0 4px 10px rgba(22,163,74,0.2))' : 'none');
+          }
+          if (boxOpen) {
+            boxOpen.setAttribute('fill', state === 'open' ? 'var(--accent-coral-dim)' : '#ffffff');
+            boxOpen.setAttribute('stroke', state === 'open' ? 'var(--accent-coral)' : '#cbd5e1');
+            boxOpen.setAttribute('stroke-width', state === 'open' ? '3' : '2');
+            boxOpen.setAttribute('filter', state === 'open' ? 'drop-shadow(0 4px 10px rgba(234,88,12,0.2))' : 'none');
+          }
+          if (boxHalf) {
+            boxHalf.setAttribute('fill', state === 'half' ? 'var(--accent-amber-dim)' : '#ffffff');
+            boxHalf.setAttribute('stroke', state === 'half' ? 'var(--accent-amber)' : '#cbd5e1');
+            boxHalf.setAttribute('stroke-width', state === 'half' ? '3' : '2');
+            boxHalf.setAttribute('filter', state === 'half' ? 'drop-shadow(0 4px 10px rgba(217,119,6,0.2))' : 'none');
+          }
+
+          if (rowClosed) rowClosed.style.background = state === 'closed' ? 'var(--accent-green-dim)' : '';
+          if (rowOpen) rowOpen.style.background = state === 'open' ? 'var(--accent-coral-dim)' : '';
+          if (rowHalf) rowHalf.style.background = state === 'half' ? 'var(--accent-amber-dim)' : '';
+        }
+
+        function animatePath(pathId, color, duration, onComplete) {
+          const path = document.getElementById(pathId);
+          if (!path || !layer) { if (onComplete) onComplete(); return; }
+          const length = path.getTotalLength();
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('r', '7');
+          dot.setAttribute('fill', color);
+          dot.setAttribute('filter', 'drop-shadow(0 2px 5px rgba(0,0,0,0.25))');
+          layer.appendChild(dot);
+
+          const startTime = performance.now();
+          function step(now) {
+            const el = now - startTime;
+            const p = Math.min(el / duration, 1);
+            const pt = path.getPointAtLength(p * length);
+            dot.setAttribute('cx', pt.x);
+            dot.setAttribute('cy', pt.y);
+            if (p < 1) {
+              requestAnimationFrame(step);
+            } else {
+              dot.remove();
+              if (onComplete) onComplete();
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        function runCycle() {
+          const s10Active = document.querySelector('section[data-index="10"]');
+          if (!s10Active || !s10Active.classList.contains('active')) {
+            stopSlide10Loop();
+            return;
+          }
+          clearS10Timeouts();
+          if (layer) layer.innerHTML = '';
+          setActiveVisual('closed');
+          if (failCount) failCount.textContent = '';
+          if (badge) {
+            badge.textContent = 'STATE: CLOSED (Normal Traffic)';
+            badge.style.color = 'var(--accent-green)';
+            badge.style.background = 'var(--accent-green-dim)';
+            badge.style.borderColor = 'var(--accent-green-border)';
+          }
+
+          s10Timeouts.push(setTimeout(() => {
+            if (failCount) failCount.textContent = 'Failures: 1 / 3';
+            if (badge) badge.textContent = 'Downstream Failure (1/3)';
+          }, 1000));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (failCount) failCount.textContent = 'Failures: 2 / 3';
+            if (badge) badge.textContent = 'Downstream Failure (2/3)';
+          }, 1800));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (failCount) failCount.textContent = 'Failures: 3 / 3 (THRESHOLD!)';
+            if (badge) {
+              badge.textContent = '3 Consecutive Failures → TRIP!';
+              badge.style.color = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral-dim)';
+              badge.style.borderColor = 'var(--accent-coral-border)';
+            }
+            animatePath('s10-path-to-open', '#ea580c', 700, () => {
+              setActiveVisual('open');
+              if (failCount) failCount.textContent = '';
+              if (badge) {
+                badge.textContent = 'STATE: OPEN (Failing Fast 0ms)';
+              }
+            });
+          }, 2600));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'OPEN: Cooldown 30s Expiring...';
+            }
+          }, 4200));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Cooldown Expired → PROBE TEST';
+              badge.style.color = 'var(--accent-amber)';
+              badge.style.background = 'var(--accent-amber-dim)';
+              badge.style.borderColor = 'var(--accent-amber-border)';
+            }
+            animatePath('s10-path-to-half', '#d97706', 700, () => {
+              setActiveVisual('half');
+              if (badge) {
+                badge.textContent = 'STATE: HALF-OPEN (Testing 1 Probe)';
+              }
+            });
+          }, 5000));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Probe Succeeded (200 OK) → RECOVER!';
+              badge.style.color = 'var(--accent-green)';
+              badge.style.background = 'var(--accent-green-dim)';
+              badge.style.borderColor = 'var(--accent-green-border)';
+            }
+            animatePath('s10-path-to-closed', '#16a34a', 700, () => {
+              setActiveVisual('closed');
+              if (failCount) failCount.textContent = 'Recovered!';
+              if (badge) {
+                badge.textContent = 'STATE: CLOSED (Traffic Restored)';
+              }
+            });
+          }, 6600));
+        }
+
+        runCycle();
+        s10AnimTimer = setInterval(runCycle, 8400);
+      }
+
+      // -------------------------------------------------------------
       // Cache Concept Looped Animation Controller (Slide 2)
       // -------------------------------------------------------------
       let s2AnimTimer = null;
@@ -1898,6 +2106,7 @@
 
       function stopAllAnimations() {
         stopSlide2Loop();
+        stopSlide10Loop();
         if (s8AnimTimer) { clearInterval(s8AnimTimer); s8AnimTimer = null; }
         if (s9AnimTimer) { clearInterval(s9AnimTimer); s9AnimTimer = null; }
         const p8 = document.getElementById('s8-particles-layer');
@@ -2366,6 +2575,8 @@
           startSlide8Loop();
         } else if (currentIndex === 8) {
           startSlide9Loop();
+        } else if (currentIndex === 9) {
+          startSlide10Loop();
         }
       }
 

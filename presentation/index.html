@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Know What Your AI Is Building — System Design Episodes</title>
+  <style>
+    /* -------------------------------------------------------------
+       CSS Reset & Design System Variables
+       Base: White / Light (#ffffff / #f8fafc)
+       Text: Dark slate (#0f172a, #334155, #64748b)
+       Vibrant Accents:
+         - Coral/Orange: #f97316 / #ea580c (Bottlenecks, Errors, High Priority)
+         - Vibrant Blue: #2563eb / #3b82f6 (Cache, Primary Flows, Tokens)
+         - Vibrant Green: #16a34a / #22c55e (Hits, Healthy nodes, Probes)
+         - Vibrant Amber: #d97706 / #f59e0b (Warnings, Latency, Cooldowns)
+         - Vibrant Purple: #7c3aed / #8b5cf6 (Load Balancer Node C)
+       ------------------------------------------------------------- */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #f1f5f9;
+      --bg-stage: #ffffff;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --border-card: #e2e8f0;
+      --border-card-hover: #cbd5e1;
+
+      --text-main: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+
+      --accent-coral: #ea580c;
+      --accent-coral-dim: #fff7ed;
+      --accent-coral-border: #fdba74;
+
+      --accent-blue: #2563eb;
+      --accent-blue-dim: #eff6ff;
+      --accent-blue-border: #bfdbfe;
+
+      --accent-green: #16a34a;
+      --accent-green-dim: #f0fdf4;
+      --accent-green-border: #bbf7d0;
+
+      --accent-amber: #d97706;
+      --accent-amber-dim: #fffbeb;
+      --accent-amber-border: #fde68a;
+
+      --accent-purple: #7c3aed;
+      --accent-purple-dim: #faf5ff;
+      --accent-purple-border: #e9d5ff;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-card: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* -------------------------------------------------------------
+       Stage & 16:9 Letterboxed Viewport
+       ------------------------------------------------------------- */
+    #stage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: center center;
+      background: var(--bg-stage);
+      box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #cbd5e1;
+    }
+
+    /* Subtle subtle background pattern */
+    #stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.03) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(234, 88, 12, 0.03) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* -------------------------------------------------------------
+       Top Navigation & Progress Bar
+       ------------------------------------------------------------- */
+    #progress-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+      z-index: 50;
+    }
+
+    #progress-fill {
+      height: 100%;
+      width: 7.7%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    header {
+      height: 76px;
+      padding: 0 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      border-bottom: 1px solid var(--border-card);
+      background: #ffffff;
+    }
+
+    .badge-episode {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      background: var(--accent-blue-dim);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid var(--accent-blue-border);
+      font-family: var(--font-mono);
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .slide-counter span.current {
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    /* -------------------------------------------------------------
+       Slide Container & Transitions
+       ------------------------------------------------------------- */
+    #slides-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      z-index: 10;
+      background: var(--bg-subtle);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 44px 64px 48px 64px;
+      display: none;
+      flex-direction: column;
+      background: var(--bg-stage);
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    /* Typography */
+    .slide-header {
+      margin-bottom: 28px;
+    }
+
+    .slide-title {
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      color: var(--text-main);
+      margin-bottom: 10px;
+    }
+
+    .slide-title .gradient-text {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-subtitle {
+      font-size: 21px;
+      line-height: 1.4;
+      color: var(--text-body);
+      max-width: 1400px;
+      font-weight: 400;
+    }
+
+    .slide-content {
+      flex: 1;
+      display: flex;
+      gap: 32px;
+      min-height: 0;
+    }
+
+    /* -------------------------------------------------------------
+       Clean Dashboard Metric Cards
+       ------------------------------------------------------------- */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+
+    .card.highlight-coral {
+      border-color: var(--accent-coral-border);
+      background: linear-gradient(180deg, #ffffff 70%, #fff7ed 100%);
+    }
+
+    .card.highlight-blue {
+      border-color: var(--accent-blue-border);
+      background: linear-gradient(180deg, #ffffff 70%, #eff6ff 100%);
+    }
+
+    .card.highlight-green {
+      border-color: var(--accent-green-border);
+      background: linear-gradient(180deg, #ffffff 70%, #f0fdf4 100%);
+    }
+
+    .card.highlight-amber {
+      border-color: var(--accent-amber-border);
+      background: linear-gradient(180deg, #ffffff 70%, #fffbeb 100%);
+    }
+
+    .card-header-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+    }
+
+    .card-header-label .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Rounded Metric Badges */
+    .metric-badge {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 10px 18px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid var(--border-card);
+      font-family: var(--font-mono);
+      box-shadow: var(--shadow-sm);
+    }
+    .metric-badge .val {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .metric-badge .unit {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Metric Tiles Row */
+    .metric-tile {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .metric-tile .label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .metric-tile .number {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+    }
+
+    /* Step Rows */
+    .step-box {
+      background: #ffffff;
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 15px;
+      color: var(--text-body);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step-box.bad {
+      border-color: var(--accent-coral-border);
+      background: var(--accent-coral-dim);
+      color: #9a3412;
+    }
+
+    .step-box.good {
+      border-color: var(--accent-green-border);
+      background: var(--accent-green-dim);
+      color: #166534;
+    }
+
+    .step-box.warn {
+      border-color: var(--accent-amber-border);
+      background: var(--accent-amber-dim);
+      color: #92400e;
+    }
+
+    /* Table styles */
+    .comp-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+    .comp-table th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 6px 16px;
+      letter-spacing: 0.08em;
+    }
+    .comp-table td {
+      background: var(--bg-subtle);
+      padding: 16px;
+      font-size: 16px;
+      border-top: 1px solid var(--border-card);
+      border-bottom: 1px solid var(--border-card);
+      color: var(--text-body);
+    }
+    .comp-table tr td:first-child {
+      border-left: 1px solid var(--border-card);
+      border-radius: 10px 0 0 10px;
+      font-weight: 700;
+    }
+    .comp-table tr td:last-child {
+      border-right: 1px solid var(--border-card);
+      border-radius: 0 10px 10px 0;
+    }
+
+    /* -------------------------------------------------------------
+       Footer & Bottom Bar
+       ------------------------------------------------------------- */
+    footer {
+      height: 56px;
+      padding: 0 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-card);
+      background: #ffffff;
+      z-index: 20;
+    }
+
+    .key-hints {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .key-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: #f1f5f9;
+      border-radius: 6px;
+      color: var(--text-main);
+      border: 1px solid #cbd5e1;
+      font-weight: 700;
+    }
+
+    /* -------------------------------------------------------------
+       Speaker Notes Drawer (Toggled with 'S' key or button)
+       ------------------------------------------------------------- */
+    #notes-panel {
+      position: absolute;
+      bottom: 56px;
+      right: 48px;
+      width: 580px;
+      max-height: 480px;
+      background: #ffffff;
+      border: 1px solid var(--accent-blue-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #notes-panel.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .notes-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-subtle);
+      border-radius: 16px 16px 0 0;
+    }
+
+    .notes-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notes-close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .notes-close-btn:hover { color: var(--text-main); }
+
+    .notes-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-body);
+    }
+
+    .notes-cue {
+      display: block;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-left: 4px solid var(--accent-amber);
+      background: var(--accent-amber-dim);
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: #78350f;
+    }
+
+    .notes-code-cue {
+      display: block;
+      margin-top: 8px;
+      padding: 8px 14px;
+      border-left: 4px solid var(--accent-green);
+      background: var(--accent-green-dim);
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: #14532d;
+      font-weight: 600;
+    }
+
+    /* -------------------------------------------------------------
+       Slide 1: Hero
+       ------------------------------------------------------------- */
+    .hero-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      height: 100%;
+    }
+
+    .hero-pre {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      margin-bottom: 24px;
+      font-family: var(--font-mono);
+      background: var(--accent-blue-dim);
+      padding: 6px 18px;
+      border-radius: 9999px;
+      border: 1px solid var(--accent-blue-border);
+    }
+
+    .hero-title {
+      font-size: 82px;
+      font-weight: 900;
+      line-height: 1.06;
+      letter-spacing: -0.035em;
+      margin-bottom: 28px;
+      max-width: 1400px;
+      color: var(--text-main);
+    }
+
+    .hero-title span.highlight {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-coral) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 30px;
+      color: var(--text-body);
+      font-weight: 400;
+      max-width: 1050px;
+      line-height: 1.45;
+      margin-bottom: 52px;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 20px;
+    }
+
+    .hero-badge-item {
+      padding: 14px 28px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid var(--border-card);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-body);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow-card);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Stage: 16:9 1920x1080 Viewport scaled dynamically -->
+  <div id="stage">
+
+    <!-- Top Progress Bar -->
+    <div id="progress-track">
+      <div id="progress-fill"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header>
+      <div class="badge-episode" id="header-tag">EPISODE 00 // INTRO</div>
+      <div class="slide-counter">
+        <span class="current" id="counter-current">01</span> / <span id="counter-total">13</span>
+      </div>
+    </header>
+
+    <!-- Slides Viewport -->
+    <div id="slides-viewport">
+
+      <!-- ===================================================================
+           SLIDE 1: Title & Hook
+           =================================================================== -->
+      <section class="slide active" data-ep="INTRO // ARCHITECTURE" data-index="1">
+        <div class="hero-container">
+          <div class="hero-pre">BPN DEV // DESIGN SYSTEM EPISODES</div>
+          <h1 class="hero-title">
+            Know What Your <span class="highlight">AI Is Building</span>
+          </h1>
+          <p class="hero-subtitle">
+            AI writes the code in seconds. <strong style="color: var(--text-main); font-weight: 800;">You choose the architecture.</strong>
+          </p>
+          <div class="hero-badges">
+            <div class="hero-badge-item" style="border-left: 4px solid var(--accent-blue);">
+              <span style="color: var(--accent-blue);">⚡</span> 01. Cache
+            </div>
+            <div class="hero-badge-item" style="border-left: 4px solid var(--accent-coral);">
+              <span style="color: var(--accent-coral);">🛑</span> 02. Rate Limit
+            </div>
+            <div class="hero-badge-item" style="border-left: 4px solid var(--accent-purple);">
+              <span style="color: var(--accent-purple);">⚖️</span> 03. Load Balancing
+            </div>
+            <div class="hero-badge-item" style="border-left: 4px solid var(--accent-green);">
+              <span style="color: var(--accent-green);">🔌</span> 04. Circuit Breaker
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Opening Hook (2 min):</strong></p>
+          <p>"The rise of AI coding has outsourced typing code. You prompt, and 200 lines of Go or TypeScript appear. But AI generates code based on patterns, not your system constraints."</p>
+          <div class="notes-cue">Key thesis: Without human architectural judgment, AI coding results in unneeded complexity, security holes, and outages.</div>
+          <p>Today we walk through 4 bite-size episodes from our live demo repo: Cache, Rate Limiting, Load Balancing, and Circuit Breakers.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 2: Episode 1 (Cache) - The Happy Path vs The Cost
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="2">
+        <div class="slide-header">
+          <h2 class="slide-title">The Happy Path: <span class="gradient-text">Avoiding Repeated Work</span></h2>
+          <p class="slide-subtitle">Cache bypasses the slow database disk/network hop. But cheaper per request doesn't mean free.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Without Cache -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              Without Cache (3 Repeat Queries)
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div class="step-box bad">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #1</span>
+                <span>Client &rarr; App &rarr; Database (Disk I/O)</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div class="step-box bad">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #2</span>
+                <span>Client &rarr; App &rarr; Database (Repeat query)</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div class="step-box bad">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #3</span>
+                <span>Client &rarr; App &rarr; Database (Repeat query)</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-card);">
+                <span style="color: var(--text-muted); font-weight: 600;">Total Latency:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-coral);">1,500</span><span class="unit">ms</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: With Cache -->
+          <div class="card highlight-green" style="flex: 1;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--accent-green);"></span>
+              With Cache (1 Miss, 2 Hits)
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div class="step-box warn">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #1</span>
+                <span>Cache Miss &rarr; Fetch DB &rarr; Store in RAM</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-amber);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div class="step-box good">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #2</span>
+                <span>Cache Hit &rarr; Returned directly from RAM</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-green);">&lt;1</span><span class="unit">ms</span></span>
+              </div>
+              <div class="step-box good">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #3</span>
+                <span>Cache Hit &rarr; Returned directly from RAM</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-green);">&lt;1</span><span class="unit">ms</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-card);">
+                <span style="color: var(--text-muted); font-weight: 600;">Total Latency:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-green);">~500</span><span class="unit">ms (3x faster)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 1: Happy Path (Console Demo 1):</strong></p>
+          <p>"Your app feels sluggish. You add cache. It feels instant. Total time drops from 1500ms to 500ms."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 1 in `episodes/cache`</div>
+          <p>"Cache is simply avoiding repeated work. Identify expensive operations that return the same result."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 3: Episode 1 (Cache) - What NOT to Cache
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="3">
+        <div class="slide-header">
+          <h2 class="slide-title">What <span style="color: var(--accent-coral);">NOT</span> to Cache: Anti-Patterns</h2>
+          <p class="slide-subtitle">AI defaults to caching whatever was slow. Stale reads can become severe security &amp; inventory bugs.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Card 1: Permissions Bug -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              1. Security: Cached Permissions
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="font-size: 15px; color: var(--text-body); line-height: 1.5;">
+                <p style="margin-bottom: 12px;">TTL: <strong>1 hour</strong>. Admin revokes employee "write" access in DB at 10:05.</p>
+                <div class="step-box bad" style="margin-bottom: 10px;">
+                  <span>10:00: Cached <code>["read", "write"]</code></span>
+                </div>
+                <div class="step-box bad" style="margin-bottom: 10px;">
+                  <span>10:05: DB revokes access <code>["read"]</code></span>
+                </div>
+                <div class="step-box bad">
+                  <span>10:50: Cache returns <code>["write"]</code> &rarr; <strong>Breach!</strong></span>
+                </div>
+              </div>
+              <div style="background: var(--accent-coral-dim); border: 1px solid var(--accent-coral-border); padding: 12px; border-radius: 8px; font-size: 13px; color: #9a3412;">
+                <strong>Rule:</strong> Don't cache security-critical data without explicit push invalidation.
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Inventory Bug -->
+          <div class="card highlight-amber" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              2. Consistency: Real-Time Stock
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="font-size: 15px; color: var(--text-body); line-height: 1.5;">
+                <p style="margin-bottom: 12px;">Product has <strong>1 item left</strong>. Cached with 10s TTL.</p>
+                <div class="step-box warn" style="margin-bottom: 10px;">
+                  <span>Alice buys item 1 &rarr; Stock becomes 0</span>
+                </div>
+                <div class="step-box warn" style="margin-bottom: 10px;">
+                  <span>Bob checks &rarr; Cache still returns <strong>1 in stock</strong></span>
+                </div>
+                <div class="step-box bad">
+                  <span>Bob checkout succeeds &rarr; <strong>Oversold (-1)</strong></span>
+                </div>
+              </div>
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 12px; border-radius: 8px; font-size: 13px; color: #78350f;">
+                <strong>Rule:</strong> Never cache data that changes frequently and carries business liability when stale.
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: One-Time Reads -->
+          <div class="card" style="flex: 1;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--text-dim);"></span>
+              3. Waste: One-Time Reads
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="font-size: 15px; color: var(--text-body); line-height: 1.5;">
+                <p style="margin-bottom: 12px;">Caching <code>last_login_at</code> or password reset tokens in RAM.</p>
+                <div class="step-box" style="margin-bottom: 10px;">
+                  <span>Stored for 1 Hour: <code>user:123:token</code></span>
+                </div>
+                <div class="step-box" style="margin-bottom: 10px;">
+                  <span>Read Count = <strong>1</strong> (never read again)</span>
+                </div>
+                <div class="step-box bad">
+                  <span>Result: <strong>Memory pollution &amp; evicts hot keys</strong></span>
+                </div>
+              </div>
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-muted);">
+                <strong>Rule:</strong> Cache only data expected to be read multiple times.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 2: What NOT to Cache:</strong></p>
+          <p>"AI loves to wrap functions with `@cached`. But caching permissions means revoked users still hold access for 59 minutes."</p>
+          <div class="notes-cue">"Caching inventory count when there is 1 item left means overselling to negative inventory."</div>
+          <p>Ask the audience: Does this data change? Does stale data create legal or security liability? If yes, don't blindly cache.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 4: Episode 1 (Cache) - Scaling Out: Map vs Shared Redis
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="4">
+        <div class="slide-header">
+          <h2 class="slide-title">Scaling Out: <span class="gradient-text">Local RAM vs. Shared Redis</span></h2>
+          <p class="slide-subtitle">When you add a second server, local memory creates stale drift. Shared Redis fixes drift at the cost of a network hop.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Architecture Left: Per-Server Map -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              In-Memory Map: Stale Alice Bug
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 18px; font-family: var(--font-mono); font-size: 14px;">
+                <div style="color: var(--text-muted); margin-bottom: 8px;">// Step 1: Read via Server A</div>
+                <div>Server A caches: <span style="color: var(--accent-blue); font-weight: 700;">"Alice"</span></div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 2: Update Name via Server B</div>
+                <div>Server B updates DB &rarr; <span style="color: var(--accent-green); font-weight: 700;">"Alicia"</span></div>
+                <div>Server B invalidates its own map</div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 3: Read via Server A again</div>
+                <div style="color: var(--accent-coral); font-weight: 800;">Server A returns cached: "Alice" ❌ STALE!</div>
+              </div>
+              <div style="font-size: 14px; color: #9a3412; background: var(--accent-coral-dim); border-left: 4px solid var(--accent-coral); padding: 12px; border-radius: 0 8px 8px 0;">
+                Server B cannot purge Server A's process RAM heap.
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture Right: Shared Redis -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              Shared Redis: Consistent Fresh Reads
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 18px; font-family: var(--font-mono); font-size: 14px;">
+                <div style="color: var(--text-muted); margin-bottom: 8px;">// Step 1: Read via Server A</div>
+                <div>Loads DB &rarr; stores in <span style="color: var(--accent-blue); font-weight: 700;">Redis</span>: "Alice"</div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 2: Update Name via Server B</div>
+                <div>Server B updates DB &rarr; <span style="color: var(--accent-green); font-weight: 700;">"Alicia"</span></div>
+                <div>Server B deletes key in <span style="color: var(--accent-blue); font-weight: 700;">Redis</span></div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 3: Read via Server A again</div>
+                <div style="color: var(--accent-green); font-weight: 800;">Server A misses Redis &rarr; reloads "Alicia" ✓ FRESH!</div>
+              </div>
+              <div style="font-size: 14px; color: var(--text-muted); background: var(--accent-blue-dim); border-left: 4px solid var(--accent-blue); padding: 12px; border-radius: 0 8px 8px 0;">
+                Trade-off: Network hop (~1ms vs 0ms) + new infrastructure dependency.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 4: The Plot Twist — Multiple Servers:</strong></p>
+          <p>"Ask the audience: Everything worked great with Go's `sync.Map`. Now you launch Server 2 behind AWS ALB. What happens?"</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 4 in `episodes/cache`</div>
+          <p>"Server B cannot touch Server A's heap memory. Alice is stuck as Alice on server A. Shared state requires shared storage."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 5: Episode 2 (Rate Limit) - The Unprotected Resource
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="5">
+        <div class="slide-header">
+          <h2 class="slide-title">The Unprotected Resource: <span style="color: var(--accent-coral);">Noisy Neighbor Starvation</span></h2>
+          <p class="slide-subtitle">Cache made requests cheaper. But cheaper is not free. Without limits, whoever queries fastest takes everything.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: The Bot Flood -->
+          <div class="card" style="flex: 1.2;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              Shared Capacity: 5 Concurrent Workers
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                  <span style="color: var(--accent-coral); font-weight: 800;">Bot (Flood Loop: 50 reqs)</span>
+                  <span style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">Occupies 94% Capacity</span>
+                </div>
+                <div style="height: 24px; background: #e2e8f0; border-radius: 8px; overflow: hidden; display: flex;">
+                  <div style="width: 94%; background: var(--accent-coral);"></div>
+                  <div style="width: 6%; background: var(--accent-green);"></div>
+                </div>
+              </div>
+
+              <div class="step-box bad">
+                <span style="font-size: 22px;">🤖</span>
+                <div style="flex: 1; font-size: 14px;">
+                  <strong>Bot Greedily Consumes Worker Pool</strong><br>
+                  <span style="color: var(--text-muted);">50 rapid-fire requests queue up database connections and CPU</span>
+                </div>
+              </div>
+
+              <div class="step-box bad" style="border-left: 4px solid var(--accent-coral);">
+                <span style="font-size: 22px;">👤</span>
+                <div style="flex: 1; font-size: 14px;">
+                  <strong>Alice (Normal User: 3 requests)</strong><br>
+                  <span style="color: var(--text-body);">Req #1 waited 2.1s &bull; Req #2 waited 2.3s &bull; Req #3: <strong style="color: #ffffff; background: var(--accent-coral); padding: 2px 6px; border-radius: 4px;">TIMEOUT (504)</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Principle -->
+          <div class="card highlight-amber" style="flex: 0.8;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              The Core Problem
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 18px; line-height: 1.6; color: var(--text-main); font-weight: 600;">
+                Every backend has a finite budget:
+              </p>
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px; font-family: var(--font-mono); font-size: 15px;">
+                <li style="display: flex; gap: 10px; align-items: center;">
+                  <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> CPU Cores &amp; Thread Pool
+                </li>
+                <li style="display: flex; gap: 10px; align-items: center;">
+                  <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> Database Connection Pool (Max 20)
+                </li>
+                <li style="display: flex; gap: 10px; align-items: center;">
+                  <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> Downstream API Quotas ($$$)
+                </li>
+              </ul>
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 16px; border-radius: 12px; font-size: 14px; color: #78350f;">
+                Without a rate limit, your budget belongs to the client with the tightest loop.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Episode 2 Opening & Scene 1:</strong></p>
+          <p>"Cache made every request fast. But what happens when an AI crawler loops or a bot floods 10k req/s?"</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 1 in `episodes/rate-limit`</div>
+          <p>"Notice Alice waiting 2.3 seconds before timing out. The server didn't crash; it just served the loudest client first."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 6: Episode 2 (Rate Limit) - Fixed Window vs Token Bucket
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="6">
+        <div class="slide-header">
+          <h2 class="slide-title">Algorithm Mechanics: <span class="gradient-text">Fixed Window vs Token Bucket</span></h2>
+          <p class="slide-subtitle">Fixed Window allows a 2x burst across window boundaries. Token Bucket enforces a smooth average while allowing bursts.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Fixed Window Boundary Burst -->
+          <div class="card highlight-amber" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              Fixed Window: Boundary Burst (2x Traffic)
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 14px; color: var(--text-muted);">Config: Limit 5 reqs per 1-second window.</p>
+
+              <!-- Timeline Diagram -->
+              <div style="position: relative; padding: 20px 0;">
+                <div style="height: 4px; background: #cbd5e1; width: 100%; position: relative;">
+                  <div style="position: absolute; left: 50%; top: -14px; height: 32px; width: 2px; background: var(--accent-coral);"></div>
+                  <div style="position: absolute; left: 50%; top: 22px; transform: translateX(-50%); font-size: 11px; font-family: var(--font-mono); color: var(--accent-coral); font-weight: 700;">Window Reset (1.0s)</div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 36px;">
+                  <div style="width: 45%; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 14px; border-radius: 8px; text-align: center;">
+                    <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-amber); font-weight: 700;">t = 0.9s (Window 1)</div>
+                    <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
+                  </div>
+                  <div style="width: 45%; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 14px; border-radius: 8px; text-align: center;">
+                    <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-amber); font-weight: 700;">t = 1.1s (Window 2)</div>
+                    <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background: var(--accent-coral-dim); border-left: 4px solid var(--accent-coral); padding: 12px; font-size: 14px; color: #9a3412;">
+                <strong>10 requests allowed in 0.2s!</strong> Double the stated 5/sec limit.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Token Bucket Smooth Drain -->
+          <div class="card highlight-green" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-green);">
+              <span class="dot" style="background: var(--accent-green);"></span>
+              Token Bucket: Bursts with Constant Refill
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 14px; color: var(--text-muted);">Capacity: 5 tokens. Refill: 1 token / second.</p>
+
+              <div style="display: flex; gap: 24px; align-items: center; justify-content: center; padding: 10px 0;">
+                <!-- Bucket Visual -->
+                <div style="width: 140px; height: 160px; border: 3px solid var(--accent-green); border-top: none; border-radius: 0 0 16px 16px; background: var(--accent-green-dim); display: flex; flex-direction: column-reverse; padding: 10px; gap: 6px;">
+                  <div style="height: 22px; background: var(--accent-green); border-radius: 4px;"></div>
+                  <div style="height: 22px; background: var(--accent-green); border-radius: 4px;"></div>
+                  <div style="height: 22px; background: var(--accent-green); border-radius: 4px;"></div>
+                  <div style="height: 22px; background: rgba(34, 197, 94, 0.2); border: 1px dashed var(--accent-green); border-radius: 4px;"></div>
+                </div>
+
+                <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.8;">
+                  <div>&bull; Burst up to capacity (5 reqs)</div>
+                  <div>&bull; 6th request: <span style="color: var(--accent-coral); font-weight: 800;">429 Too Many Reqs</span></div>
+                  <div>&bull; Drains smoothly at refill rate</div>
+                </div>
+              </div>
+
+              <div style="background: var(--accent-green-dim); border-left: 4px solid var(--accent-green); padding: 12px; font-size: 14px; color: #166534;">
+                <strong>Real users are bursty.</strong> Token bucket accommodates natural burstiness without boundary doubling.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 2 & 3: Fixed Window vs Token Bucket:</strong></p>
+          <p>"Fixed window is simple to code with Redis INCR. But watch the boundary: 5 requests at 0.9s, reset at 1.0s, 5 requests at 1.1s."</p>
+          <div class="notes-cue">"That's 10 requests hitting your database in 200 milliseconds!"</div>
+          <p>Token bucket provides smooth refills and models human usage much better.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 7: Episode 2 (Rate Limit) - Scaling Out Matrix
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="7">
+        <div class="slide-header">
+          <h2 class="slide-title">Scaling Out: <span class="gradient-text">The Load Balancer Matrix</span></h2>
+          <p class="slide-subtitle">Local memory counters multiply your quota by N servers. Shared Redis guarantees your true limit.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: In-memory across 3 servers -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              3 Servers + Local In-Memory Counters
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 14px; color: var(--text-muted);">Specified Limit: <strong>5 req/window</strong> per client.</p>
+
+              <div style="display: flex; gap: 12px;">
+                <div class="metric-tile" style="flex: 1; text-align: center;">
+                  <div class="label">Server A</div>
+                  <div class="number" style="color: var(--accent-coral);">5 / 5</div>
+                  <div style="font-size: 12px; color: var(--accent-green); font-weight: 700;">Allowed ✓</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center;">
+                  <div class="label">Server B</div>
+                  <div class="number" style="color: var(--accent-coral);">5 / 5</div>
+                  <div style="font-size: 12px; color: var(--accent-green); font-weight: 700;">Allowed ✓</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center;">
+                  <div class="label">Server C</div>
+                  <div class="number" style="color: var(--accent-coral);">5 / 5</div>
+                  <div style="font-size: 12px; color: var(--accent-green); font-weight: 700;">Allowed ✓</div>
+                </div>
+              </div>
+
+              <div style="background: var(--accent-coral-dim); border: 1px solid var(--accent-coral-border); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #9a3412; font-size: 15px; font-weight: 700;">Total Traffic Passed to DB:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-coral);">15 / 5</span><span class="unit">(3x Leaked!)</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Shared Redis Counter -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              3 Servers + Shared Redis Counter
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 14px; color: var(--text-muted);">Atomic INCR on central key <code>ratelimit:client:&lt;window&gt;</code></p>
+
+              <div class="metric-tile" style="text-align: center; padding: 24px;">
+                <div class="label" style="color: var(--accent-blue);">Central Redis Key Counter</div>
+                <div class="number" style="color: var(--accent-blue); font-size: 42px; margin: 8px 0;">5 / 5 [CAP]</div>
+                <div style="font-size: 13px; color: var(--text-muted);">Next 10 requests rejected with HTTP 429 across all nodes</div>
+              </div>
+
+              <div style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #166534; font-size: 15px; font-weight: 700;">Total Traffic Passed:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-green);">5 / 5</span><span class="unit">(Strictly Enforced)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 5: Scaling Out Matrix:</strong></p>
+          <p>"Notice how the two episodes connect! In Episode 1, local cache created stale reads. In Episode 2, local rate limiting leaks 15 requests instead of 5."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 5 & 6 in `episodes/rate-limit`</div>
+          <p>"Every time you say 'just add servers behind a load balancer', your stateful guarantees break unless moved to a shared tier."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 8: Episode 3 (Load Balancing) - Round-Robin
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 3 // LOAD BALANCING" data-index="8">
+        <div class="slide-header">
+          <h2 class="slide-title">Equal Distribution: <span class="gradient-text">Round-Robin Mechanics</span></h2>
+          <p class="slide-subtitle">Opening the Load Balancer box: cyclic routing across identical instances. Equal requests &ne; equal work.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Diagram -->
+          <div class="card" style="flex: 1.2;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              12 Incoming Requests &rarr; 3 Identical Nodes
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <!-- Cyclic assignment animation strip -->
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 16px; font-family: var(--font-mono); font-size: 14px;">
+                <div style="color: var(--text-muted); margin-bottom: 10px; font-weight: 700;">// Cyclic Sequence: A &rarr; B &rarr; C</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">1:A</span>
+                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">2:B</span>
+                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">3:C</span>
+                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">4:A</span>
+                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">5:B</span>
+                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">6:C</span>
+                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">7:A</span>
+                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">8:B</span>
+                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">9:C</span>
+                  <span style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); color: var(--accent-blue); padding: 4px 10px; border-radius: 6px; font-weight: 700;">10:A</span>
+                  <span style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); color: var(--accent-green); padding: 4px 10px; border-radius: 6px; font-weight: 700;">11:B</span>
+                  <span style="background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); color: var(--accent-purple); padding: 4px 10px; border-radius: 6px; font-weight: 700;">12:C</span>
+                </div>
+              </div>
+
+              <!-- Node Cards -->
+              <div style="display: flex; gap: 14px;">
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-blue);">
+                  <div class="label" style="color: var(--accent-blue);">Backend A</div>
+                  <div class="number">4</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">requests (33.3%)</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green);">
+                  <div class="label" style="color: var(--accent-green);">Backend B</div>
+                  <div class="number">4</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">requests (33.3%)</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-purple);">
+                  <div class="label" style="color: var(--accent-purple);">Backend C</div>
+                  <div class="number">4</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">requests (33.3%)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: The Blindspot -->
+          <div class="card highlight-amber" style="flex: 0.8;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              The Blindspot
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 16px; color: var(--text-body); line-height: 1.6;">
+                Round-robin assumes every request costs the same and every backend performs identically.
+              </p>
+              <div class="step-box bad">
+                <span style="font-size: 14px;"><strong>Req #1:</strong> 1ms static JSON query</span>
+              </div>
+              <div class="step-box bad">
+                <span style="font-size: 14px;"><strong>Req #2:</strong> 12,000ms PDF export task</span>
+              </div>
+              <div style="background: var(--accent-amber-dim); border-left: 4px solid var(--accent-amber); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f;">
+                <strong>Key Takeaway:</strong> Round-robin counts requests, not CPU cycles or queue depth.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Episode 3 Opening & Scene 1:</strong></p>
+          <p>"For two episodes we've said 'behind a load balancer.' Let's open the box. 12 requests across 3 servers."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 1 in `episodes/load-balancing`</div>
+          <p>"4, 4, and 4. Clean. But what if request 1 is a health check (1ms) and request 2 is an invoice generation (10s)?"</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 9: Episode 3 (Load Balancing) - Weighted Round-Robin
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 3 // LOAD BALANCING" data-index="9">
+        <div class="slide-header">
+          <h2 class="slide-title">Capacity-Aware: <span class="gradient-text">Weighted Distribution</span></h2>
+          <p class="slide-subtitle">Unequal servers need proportional scheduling (A:3, B:2, C:1). But routing traffic is NOT moving state.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Weighted Schedule -->
+          <div class="card highlight-blue" style="flex: 1.1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              Schedule: [A, A, A, B, B, C] &times; 2 Cycles
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="display: flex; gap: 14px;">
+                <div class="metric-tile" style="flex: 3; text-align: center; border-top: 4px solid var(--accent-blue);">
+                  <div class="label" style="color: var(--accent-blue);">Node A (Weight 3)</div>
+                  <div class="number" style="color: var(--accent-blue);">6</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">requests (50%)</div>
+                </div>
+                <div class="metric-tile" style="flex: 2; text-align: center; border-top: 4px solid var(--accent-green);">
+                  <div class="label" style="color: var(--accent-green);">Node B (Weight 2)</div>
+                  <div class="number" style="color: var(--accent-green);">4</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">requests (33%)</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-purple);">
+                  <div class="label" style="color: var(--accent-purple);">Node C (Weight 1)</div>
+                  <div class="number" style="color: var(--accent-purple);">2</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">requests (17%)</div>
+                </div>
+              </div>
+
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 8px; padding: 12px; font-family: var(--font-mono); font-size: 13px; color: var(--text-muted);">
+                Weights match known hardware capacity (e.g., 8-core vs 4-core vs 2-core instances).
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Routing != State Reminder -->
+          <div class="card highlight-amber" style="flex: 0.9;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              Critical Callback: Routing &ne; State
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 16px; line-height: 1.6; color: var(--text-main); font-weight: 600;">
+                “We changed <strong>where requests land</strong>, not where state lives.”
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                <div class="step-box bad" style="margin: 0;">
+                  <span>Per-server caches remain isolated in RAM</span>
+                </div>
+                <div class="step-box bad" style="margin: 0;">
+                  <span>Per-server rate counters still multiply total quota</span>
+                </div>
+              </div>
+              <div style="background: var(--accent-amber-dim); border-left: 4px solid var(--accent-amber); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f;">
+                A load balancer spreads traffic. It does not synchronize memory.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 2: Weighted Round-Robin:</strong></p>
+          <p>"In production, Server A is a c6i.2xlarge, Server C is a t4g.small. You give them weights: 3, 2, 1."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 2 in `episodes/load-balancing`</div>
+          <p>"Crucial callback to Episodes 1 & 2: balancing requests does not balance state! Memory stays stuck in each node."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 10: Episode 4 (Circuit Breaker) - Electrical Analogy
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="10">
+        <div class="slide-header">
+          <h2 class="slide-title">Circuit Breaker: <span class="gradient-text">State Machine &amp; Analogy</span></h2>
+          <p class="slide-subtitle">In software, "Open" means the circuit is broken and traffic is blocked. Open is a protective choice, not the fault.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: State Table & Meaning -->
+          <div class="card" style="flex: 1;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              The Three States
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <table class="comp-table">
+                <thead>
+                  <tr>
+                    <th>State</th>
+                    <th>Electrical</th>
+                    <th>Software Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="color: var(--accent-green);">● CLOSED</td>
+                    <td>Circuit connected</td>
+                    <td>Calls flow normally to partner</td>
+                  </tr>
+                  <tr>
+                    <td style="color: var(--accent-coral);">● OPEN</td>
+                    <td>Circuit broken</td>
+                    <td>Fail fast immediately; 0 wait</td>
+                  </tr>
+                  <tr>
+                    <td style="color: var(--accent-amber);">● HALF-OPEN</td>
+                    <td>Testing loop</td>
+                    <td>Send 1 probe test call to check health</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style="background: var(--bg-subtle); border-left: 4px solid var(--accent-blue); padding: 12px; font-size: 14px; color: var(--text-body);">
+                <strong>Key Insight:</strong> OPEN is our system actively protecting itself from slow hangs.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: State Machine Cycle -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              State Transition Cycle
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
+              <div style="display: flex; align-items: center; gap: 20px; width: 100%; justify-content: center;">
+                <div style="background: var(--accent-green-dim); border: 2px solid var(--accent-green); border-radius: 12px; padding: 14px 24px; text-align: center;">
+                  <div style="font-weight: 800; color: var(--accent-green);">CLOSED</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Normal Traffic</div>
+                </div>
+                <div style="color: var(--accent-coral); font-family: var(--font-mono); font-size: 12px; text-align: center; font-weight: 700;">
+                  &rarr; 3 Failures &rarr;
+                </div>
+                <div style="background: var(--accent-coral-dim); border: 2px solid var(--accent-coral); border-radius: 12px; padding: 14px 24px; text-align: center;">
+                  <div style="font-weight: 800; color: var(--accent-coral);">OPEN</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Block &amp; Fail Fast</div>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div style="color: var(--accent-amber); font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px; font-weight: 700;">
+                  &darr; Cooldown expires (30s)
+                </div>
+                <div style="background: var(--accent-amber-dim); border: 2px solid var(--accent-amber); border-radius: 12px; padding: 14px 30px; text-align: center;">
+                  <div style="font-weight: 800; color: var(--accent-amber);">HALF-OPEN</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Admit 1 Test Probe Call</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; width: 80%; margin-top: 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 700;">
+                  <span style="color: var(--accent-green);">&larr; Probe Succeeds</span>
+                  <span style="color: var(--accent-coral);">Probe Fails &rarr;</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Episode 4 Opening:</strong></p>
+          <p>"Every engineer gets confused by Closed vs Open. In English, 'the store is open' is good. In electronics, an OPEN circuit has no current!"</p>
+          <div class="notes-cue">"Closed = calls flow. Open = we stopped calling. Half-open = testing if it's safe."</div>
+          <p>Explain that timeout bounds ONE call. A breaker remembers that the last 3 calls timed out and stops wasting time.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 11: Episode 4 (Circuit Breaker) - The Wrong Boundary
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="11">
+        <div class="slide-header">
+          <h2 class="slide-title">The Wrong Boundary: <span style="color: var(--accent-coral);">1 Shared Breaker Kills All Couriers</span></h2>
+          <p class="slide-subtitle">Checkout queries 3 independent couriers (A, B, C). One global breaker disables the entire checkout when Courier B fails.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: The Blast Radius Architecture -->
+          <div class="card highlight-coral" style="flex: 1.1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              Coarse Boundary: 1 Breaker Wrapped Around All 3
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <!-- Outer Box representing single breaker -->
+              <div style="border: 2px dashed var(--accent-coral); border-radius: 12px; padding: 20px; background: var(--accent-coral-dim);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <span style="font-family: var(--font-mono); font-size: 13px; color: var(--accent-coral); font-weight: 800;">[Shared Checkout Breaker: OPEN]</span>
+                  <span style="background: var(--accent-coral); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 800;">BLOCKED</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <div style="flex: 1; background: #ffffff; border: 1px solid var(--accent-green-border); padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;">Courier A</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Healthy ✓</div>
+                  </div>
+                  <div style="flex: 1; background: #ffffff; border: 1px solid var(--accent-coral-border); padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-weight: 800; color: var(--accent-coral); font-size: 14px;">Courier B</div>
+                    <div style="font-size: 11px; color: var(--accent-coral);">Down ✗</div>
+                  </div>
+                  <div style="flex: 1; background: #ffffff; border: 1px solid var(--accent-green-border); padding: 12px; border-radius: 8px; text-align: center;">
+                    <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;">Courier C</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Healthy ✓</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background: #ffffff; border: 1px solid var(--accent-coral-border); border-radius: 8px; padding: 14px; font-size: 14px; color: #9a3412;">
+                <strong>Checkout #4 Result:</strong> “No shipping quotes available: shared circuit open.” Customers cannot buy anything!
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: The Lesson -->
+          <div class="card" style="flex: 0.9;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--text-dim);"></span>
+              Specification Trap
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 18px; line-height: 1.5; color: var(--text-main); font-weight: 600;">
+                “The code executed <em>exactly</em> as specified. <strong style="color: var(--accent-coral);">The specification was the bug.</strong>”
+              </p>
+              <div style="font-size: 14px; color: var(--text-body); line-height: 1.6;">
+                AI will happily wrap your checkout with a circuit breaker if you ask it to "add resilience". But wrapping the wrong boundary turns a minor dependency glitch into a total site outage.
+              </div>
+              <div style="border-left: 4px solid var(--accent-amber); background: var(--accent-amber-dim); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f;">
+                One partner failing should remove one shipping option, not shut down checkout.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 3: The Wrong Boundary:</strong></p>
+          <p>"Courier B is timing out. Couriers A and C are 100% fine. But you put one shared breaker on the quote function."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 3 in `episodes/circuit-breaker`</div>
+          <p>"After 3 checkouts, the shared breaker trips. Checkout 4 calls nobody. A and C were killed by B's failure."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 12: Episode 4 (Circuit Breaker) - Isolated Breakers & Probe
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="12">
+        <div class="slide-header">
+          <h2 class="slide-title">Isolated Boundaries: <span class="gradient-text">Graceful Degradation &amp; Recovery</span></h2>
+          <p class="slide-subtitle">Isolate breakers per dependency. Probe test calls verify recovery before restoring full traffic.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Isolated Breakers Diagram -->
+          <div class="card highlight-green" style="flex: 1.1;">
+            <div class="card-header-label" style="color: var(--accent-green);">
+              <span class="dot" style="background: var(--accent-green);"></span>
+              Fine-Grained Boundary: Breaker Per Courier
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="display: flex; gap: 12px;">
+                <!-- Courier A Box -->
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green);">
+                  <div class="label" style="color: var(--text-main);">Courier A</div>
+                  <div style="color: var(--accent-green); font-size: 13px; font-family: var(--font-mono); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Quotes: $15.00 ✓</div>
+                </div>
+
+                <!-- Courier B Box -->
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-coral); background: var(--accent-coral-dim);">
+                  <div class="label" style="color: var(--text-main);">Courier B</div>
+                  <div style="color: var(--accent-coral); font-size: 13px; font-family: var(--font-mono); font-weight: 800; margin: 6px 0;">[OPEN]</div>
+                  <div style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">Fast-fail (0ms) ✗</div>
+                </div>
+
+                <!-- Courier C Box -->
+                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green);">
+                  <div class="label" style="color: var(--text-main);">Courier C</div>
+                  <div style="color: var(--accent-green); font-size: 13px; font-family: var(--font-mono); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Quotes: $18.50 ✓</div>
+                </div>
+              </div>
+
+              <div style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); border-radius: 8px; padding: 14px; font-size: 14px; color: #166534;">
+                <strong>Checkout #4 Customer Experience:</strong> “Quotes available from Courier A ($15) and Courier C ($18.50). Courier B is temporarily unavailable.” Sale completes!
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Probe Recovery Cycle -->
+          <div class="card highlight-blue" style="flex: 0.9;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              Recovery Is Tested, Not Assumed
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="font-family: var(--font-mono); font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
+                <div class="step-box" style="margin: 0; padding: 10px 14px;">
+                  <span>1. Cooldown passes &rarr; B enters <strong>HALF-OPEN</strong></span>
+                </div>
+                <div class="step-box" style="margin: 0; padding: 10px 14px;">
+                  <span>2. Single test probe admitted to B</span>
+                </div>
+                <div class="step-box good" style="margin: 0; padding: 10px 14px;">
+                  <span>3. Probe succeeds &rarr; B transitions to <strong>CLOSED</strong></span>
+                </div>
+                <div class="step-box" style="margin: 0; padding: 10px 14px;">
+                  <span>4. All 3 couriers available again</span>
+                </div>
+              </div>
+              <div style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); padding: 12px; border-radius: 8px; font-size: 13px; color: #1e40af;">
+                Traffic is restored only after evidence of recovery, never just timer assumptions.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 4: Isolated Breakers & Probe Recovery:</strong></p>
+          <p>"Now give Courier B its own breaker. What happens on checkout 4?"</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 4 in `episodes/circuit-breaker`</div>
+          <p>"The customer still gets quotes from A and C. Then watch the simulated clock advance: half-open probe succeeds, B is restored."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 13: Closing - Architecture Principles
+           =================================================================== -->
+      <section class="slide" data-ep="CONCLUSION // PRINCIPLES" data-index="13">
+        <div class="slide-header">
+          <h2 class="slide-title">Architecture Principles: <span class="gradient-text">Human Judgment in the Age of AI</span></h2>
+          <p class="slide-subtitle">AI writes code faster than you ever could. Your role is deciding the system boundaries and trade-offs.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Principle 1 -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              1. Start Local, Pay Later
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 15px; color: var(--text-body); line-height: 1.6;">
+                Don't add Redis, Kafka, or microservices on day one. An in-memory map or local token bucket is fast, simple, and has zero network failure modes.
+              </p>
+              <div style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); padding: 14px; border-radius: 8px; font-size: 13px; color: #1e40af;">
+                <strong>Rule:</strong> Evolve to distributed state only when multiple instances demand consistency.
+              </div>
+            </div>
+          </div>
+
+          <!-- Principle 2 -->
+          <div class="card highlight-amber" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              2. Routing &ne; Shared State
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 15px; color: var(--text-body); line-height: 1.6;">
+                Adding a load balancer only balances incoming requests. It does not synchronize cache memory or unify rate limit quotas across servers.
+              </p>
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 14px; border-radius: 8px; font-size: 13px; color: #78350f;">
+                <strong>Rule:</strong> Scaling horizontally forces you to choose between eventual consistency and shared storage latency.
+              </div>
+            </div>
+          </div>
+
+          <!-- Principle 3 -->
+          <div class="card highlight-green" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-green);">
+              <span class="dot" style="background: var(--accent-green);"></span>
+              3. Choose the Right Boundary
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 15px; color: var(--text-body); line-height: 1.6;">
+                Resilience patterns are only as smart as their boundaries. Isolate circuits per dependency and choose rate-limit keys by client identity, not raw IP.
+              </p>
+              <div style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); padding: 14px; border-radius: 8px; font-size: 13px; color: #166534;">
+                <strong>Rule:</strong> A failure in one external partner should degrade a feature, not crash the checkout.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Closing & Retrospective:</strong></p>
+          <p>"To wrap up: AI is an incredible junior-to-mid developer that writes code instantly. But AI does not understand your blast radius or your business liability."</p>
+          <div class="notes-cue">"Know what your AI is building. Choose the architecture. Thank you!"</div>
+          <p>Open for Q&A with Heru.</p>
+        </div>
+      </section>
+
+    </div><!-- /slides-viewport -->
+
+    <!-- Footer Controls -->
+    <footer>
+      <div class="key-hints">
+        <span><span class="key-badge">&larr;</span> / <span class="key-badge">&rarr;</span> Navigate</span>
+        <span><span class="key-badge">Space</span> Next</span>
+        <span><span class="key-badge">F</span> Fullscreen</span>
+        <span><span class="key-badge">R</span> Replay</span>
+        <span><span class="key-badge">S</span> Speaker Notes</span>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-dim);">
+        BPN DEV COMMUNITY &bull; HERU JOKO P. UTOMO
+      </div>
+    </footer>
+
+    <!-- Speaker Notes Popup Panel -->
+    <div id="notes-panel">
+      <div class="notes-header">
+        <div class="notes-title">
+          <span>🎙️</span> SPEAKER NOTES &amp; DEMO CUES
+        </div>
+        <button class="notes-close-btn" id="notes-close-btn" title="Close Notes (S)">&times;</button>
+      </div>
+      <div class="notes-body" id="notes-body">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+  </div><!-- /stage -->
+
+  <script>
+    /* -------------------------------------------------------------
+       Presentation Engine (Vanilla JS, 0 External Dependencies)
+       ------------------------------------------------------------- */
+    (function() {
+      'use strict';
+
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const totalSlides = slides.length;
+      let currentIndex = 0;
+
+      const stage = document.getElementById('stage');
+      const counterCurrent = document.getElementById('counter-current');
+      const counterTotal = document.getElementById('counter-total');
+      const progressFill = document.getElementById('progress-fill');
+      const headerTag = document.getElementById('header-tag');
+      const notesPanel = document.getElementById('notes-panel');
+      const notesBody = document.getElementById('notes-body');
+      const notesCloseBtn = document.getElementById('notes-close-btn');
+
+      counterTotal.textContent = totalSlides < 10 ? '0' + totalSlides : totalSlides;
+
+      // 1. Dynamic Scaling to preserve 16:9 aspect ratio at any window size
+      function resizeStage() {
+        const stageWidth = 1920;
+        const stageHeight = 1080;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        const scaleX = windowWidth / stageWidth;
+        const scaleY = windowHeight / stageHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      }
+
+      window.addEventListener('resize', resizeStage);
+      resizeStage();
+
+      // 2. Navigation Function
+      function goToSlide(index) {
+        if (index < 0) index = 0;
+        if (index >= totalSlides) index = totalSlides - 1;
+
+        if (index === currentIndex && slides[currentIndex].classList.contains('active')) {
+          return;
+        }
+
+        slides[currentIndex].classList.remove('active');
+        currentIndex = index;
+        const activeSlide = slides[currentIndex];
+        activeSlide.classList.add('active');
+
+        // Update Counter
+        const formattedIndex = (currentIndex + 1) < 10 ? '0' + (currentIndex + 1) : (currentIndex + 1);
+        counterCurrent.textContent = formattedIndex;
+
+        // Update Progress Bar
+        const pct = ((currentIndex + 1) / totalSlides) * 100;
+        progressFill.style.width = pct + '%';
+
+        // Update Header Tag
+        const epTag = activeSlide.getAttribute('data-ep') || 'SYSTEM DESIGN';
+        headerTag.textContent = epTag;
+
+        // Update Notes
+        const noteSource = activeSlide.querySelector('.speaker-note-content');
+        notesBody.innerHTML = noteSource ? noteSource.innerHTML : '<p style="color:var(--text-muted)">No notes for this slide.</p>';
+      }
+
+      function nextSlide() {
+        if (currentIndex < totalSlides - 1) {
+          goToSlide(currentIndex + 1);
+        }
+      }
+
+      function prevSlide() {
+        if (currentIndex > 0) {
+          goToSlide(currentIndex - 1);
+        }
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        }
+      }
+
+      function toggleNotes() {
+        notesPanel.classList.toggle('open');
+      }
+
+      function replayCurrentSlide() {
+        const activeSlide = slides[currentIndex];
+        const cards = activeSlide.querySelectorAll('.card');
+        cards.forEach((card) => {
+          card.style.transform = 'scale(0.98)';
+          setTimeout(() => { card.style.transform = ''; }, 150);
+        });
+      }
+
+      // 3. Keyboard Event Handlers
+      window.addEventListener('keydown', function(e) {
+        if (['ArrowRight', 'ArrowLeft', 'Space', 'PageDown', 'PageUp'].includes(e.code)) {
+          e.preventDefault();
+        }
+
+        switch (e.code) {
+          case 'ArrowRight':
+          case 'Space':
+          case 'PageDown':
+            nextSlide();
+            break;
+          case 'ArrowLeft':
+          case 'PageUp':
+            prevSlide();
+            break;
+          case 'KeyF':
+            toggleFullscreen();
+            break;
+          case 'KeyS':
+            toggleNotes();
+            break;
+          case 'KeyR':
+            replayCurrentSlide();
+            break;
+          case 'Home':
+            goToSlide(0);
+            break;
+          case 'End':
+            goToSlide(totalSlides - 1);
+            break;
+        }
+      });
+
+      // 4. Click & Note Listeners
+      if (notesCloseBtn) {
+        notesCloseBtn.addEventListener('click', toggleNotes);
+      }
+
+      // Initialize slide 0
+      goToSlide(0);
+
+    })();
+  </script>
+</body>
+</html>

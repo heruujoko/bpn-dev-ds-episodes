@@ -942,53 +942,126 @@
           <p class="slide-subtitle">Cache made requests cheaper. But cheaper is not free. Without limits, whoever queries fastest takes everything.</p>
         </div>
         <div class="slide-content">
-          <!-- Left: The Bot Flood -->
-          <div class="card" style="flex: 1.2;">
-            <div class="card-header-label">
-              <span class="dot" style="background: var(--accent-blue);"></span>
-              Shared Capacity: 5 Concurrent Workers
+          <!-- Left: The Bot Flood & Starvation Animation -->
+          <div class="card" style="flex: 1.25; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                Shared Capacity: 5 Concurrent Workers
+              </div>
+              <div id="s5-status-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-coral); background: var(--accent-coral-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-coral-border); transition: all 0.2s;">
+                Pool Status: Bot Flooding (5/5 Workers Busy)
+              </div>
             </div>
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+
+            <!-- SVG Worker Pool Animation Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px;">
+              <svg id="s5-svg" viewBox="0 0 860 160" width="100%" height="160" style="overflow: visible;">
+                <!-- Tracks -->
+                <path d="M 120 46 L 270 46" fill="none" stroke="#fca5a5" stroke-width="3" stroke-dasharray="5 5" />
+                <path d="M 120 114 L 270 114" fill="none" stroke="#93c5fd" stroke-width="3" stroke-dasharray="5 5" />
+
+                <!-- Bot Client Node -->
+                <rect x="25" y="20" width="95" height="52" rx="10" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" filter="drop-shadow(0 2px 6px rgba(234,88,12,0.15))" />
+                <text x="72" y="43" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">🤖 BOT</text>
+                <text x="72" y="60" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--accent-coral)">50 req/s</text>
+
+                <!-- Alice Client Node -->
+                <rect x="25" y="88" width="95" height="52" rx="10" fill="var(--accent-blue-dim)" stroke="var(--accent-blue)" stroke-width="2" filter="drop-shadow(0 2px 6px rgba(37,99,235,0.15))" />
+                <text x="72" y="111" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-blue)">👤 ALICE</text>
+                <text x="72" y="128" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--accent-blue)">3 reqs</text>
+
+                <!-- Server Worker Pool Container -->
+                <rect x="270" y="12" width="565" height="136" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="552" y="30" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="800" fill="var(--text-muted)">SHARED BACKEND WORKER POOL (MAX 5 CONCURRENT WORKERS)</text>
+
+                <!-- 5 Worker Slots -->
+                <!-- Slot 1 -->
+                <g id="s5-slot-1" transform="translate(290, 42)">
+                  <rect id="s5-box-1" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W1</text>
+                  <text id="s5-label-1" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 2 -->
+                <g id="s5-slot-2" transform="translate(398, 42)">
+                  <rect id="s5-box-2" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W2</text>
+                  <text id="s5-label-2" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 3 -->
+                <g id="s5-slot-3" transform="translate(506, 42)">
+                  <rect id="s5-box-3" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W3</text>
+                  <text id="s5-label-3" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 4 -->
+                <g id="s5-slot-4" transform="translate(614, 42)">
+                  <rect id="s5-box-4" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W4</text>
+                  <text id="s5-label-4" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 5 -->
+                <g id="s5-slot-5" transform="translate(722, 42)">
+                  <rect id="s5-box-5" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W5</text>
+                  <text id="s5-label-5" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Particle Layer -->
+                <g id="s5-particles-layer"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 10px;">
               <div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
                   <span style="color: var(--accent-coral); font-weight: 800;">Bot (Flood Loop: 50 reqs)</span>
-                  <span style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">Occupies 94% Capacity</span>
+                  <span id="s5-cap-text" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">Occupies 94% Capacity</span>
                 </div>
-                <div style="height: 24px; background: #e2e8f0; border-radius: 8px; overflow: hidden; display: flex;">
-                  <div style="width: 94%; background: var(--accent-coral);"></div>
-                  <div style="width: 6%; background: var(--accent-green);"></div>
+                <div style="height: 18px; background: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
+                  <div id="s5-bar-bot" style="width: 94%; background: var(--accent-coral); transition: width 0.4s;"></div>
+                  <div id="s5-bar-alice" style="width: 6%; background: var(--accent-green); transition: width 0.4s;"></div>
                 </div>
               </div>
 
-              <div class="step-box bad">
-                <span style="font-size: 22px;">🤖</span>
-                <div style="flex: 1; font-size: 14px;">
+              <div id="s5-step-bot" class="step-box bad" style="transition: all 0.2s;">
+                <span style="font-size: 20px;">🤖</span>
+                <div style="flex: 1; font-size: 13px;">
                   <strong>Bot Greedily Consumes Worker Pool</strong><br>
                   <span style="color: var(--text-muted);">50 rapid-fire requests queue up database connections and CPU</span>
                 </div>
               </div>
 
-              <div class="step-box bad" style="border-left: 4px solid var(--accent-coral);">
-                <span style="font-size: 22px;">👤</span>
-                <div style="flex: 1; font-size: 14px;">
+              <div id="s5-step-alice" class="step-box bad" style="border-left: 4px solid var(--accent-coral); transition: all 0.2s;">
+                <span style="font-size: 20px;">👤</span>
+                <div style="flex: 1; font-size: 13px;">
                   <strong>Alice (Normal User: 3 requests)</strong><br>
-                  <span style="color: var(--text-body);">Req #1 waited 2.1s &bull; Req #2 waited 2.3s &bull; Req #3: <strong style="color: #ffffff; background: var(--accent-coral); padding: 2px 6px; border-radius: 4px;">TIMEOUT (504)</strong></span>
+                  <span id="s5-alice-status" style="color: var(--text-body);">Req #1 waited 2.1s &bull; Req #2 waited 2.3s &bull; Req #3: <strong style="color: #ffffff; background: var(--accent-coral); padding: 2px 6px; border-radius: 4px;">TIMEOUT (504)</strong></span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Right: Principle -->
-          <div class="card highlight-amber" style="flex: 0.8;">
+          <div class="card highlight-amber" style="flex: 0.85; padding: 22px 24px;">
             <div class="card-header-label" style="color: var(--accent-amber);">
               <span class="dot" style="background: var(--accent-amber);"></span>
               The Core Problem
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <p style="font-size: 18px; line-height: 1.6; color: var(--text-main); font-weight: 600;">
+              <p style="font-size: 18px; line-height: 1.5; color: var(--text-main); font-weight: 700;">
                 Every backend has a finite budget:
               </p>
-              <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px; font-family: var(--font-mono); font-size: 15px;">
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; font-family: var(--font-mono); font-size: 14px;">
                 <li style="display: flex; gap: 10px; align-items: center;">
                   <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> CPU Cores &amp; Thread Pool
                 </li>
@@ -999,105 +1072,148 @@
                   <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> Downstream API Quotas ($$$)
                 </li>
               </ul>
-              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 16px; border-radius: 12px; font-size: 14px; color: #78350f;">
-                Without a rate limit, your budget belongs to the client with the tightest loop.
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 14px; border-radius: 10px; font-size: 13px; color: #78350f; line-height: 1.5;">
+                <strong>Key Takeaway:</strong> Without a rate limit, your budget belongs to the client with the tightest loop.
               </div>
             </div>
           </div>
         </div>
         <div class="speaker-note-content" style="display:none;">
-          <p><strong>Episode 2 Opening & Scene 1:</strong></p>
+          <p><strong>Episode 2 Opening &amp; Scene 1:</strong></p>
           <p>"Cache made every request fast. But what happens when an AI crawler loops or a bot floods 10k req/s?"</p>
-          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 1 in `episodes/rate-limit`</div>
+          <div class="notes-code-cue">CUE: Run  -&gt; Option 1 in </div>
           <p>"Notice Alice waiting 2.3 seconds before timing out. The server didn't crash; it just served the loudest client first."</p>
         </div>
       </section>
 
-      <!-- ===================================================================
-           SLIDE 6: Episode 2 (Rate Limit) - Fixed Window vs Token Bucket
-           =================================================================== -->
       <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="6">
         <div class="slide-header">
           <h2 class="slide-title">Algorithm Mechanics: <span class="gradient-text">Fixed Window vs Token Bucket</span></h2>
           <p class="slide-subtitle">Fixed Window allows a 2x burst across window boundaries. Token Bucket enforces a smooth average while allowing bursts.</p>
         </div>
         <div class="slide-content">
-          <!-- Left: Fixed Window Boundary Burst -->
-          <div class="card highlight-amber" style="flex: 1;">
-            <div class="card-header-label" style="color: var(--accent-amber);">
-              <span class="dot" style="background: var(--accent-amber);"></span>
-              Fixed Window: Boundary Burst (2x Traffic)
+          <!-- Left: Fixed Window Boundary Burst Animation -->
+          <div class="card highlight-amber" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-amber);">
+                <span class="dot" style="background: var(--accent-amber);"></span>
+                Fixed Window: Boundary Burst (2x Traffic)
+              </div>
+              <div id="s6-left-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-amber); background: var(--accent-amber-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-amber-border); transition: all 0.2s;">
+                Timeline: 0.0s (Window 1)
+              </div>
             </div>
+
+            <!-- SVG Timeline Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
+              <svg id="s6-left-svg" viewBox="0 0 540 150" width="100%" height="150" style="overflow: visible;">
+                <!-- Window 1 Box -->
+                <rect id="s6-box-w1" x="20" y="20" width="235" height="95" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="137" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="var(--text-main)">WINDOW 1 (0.0s &ndash; 1.0s)</text>
+                <text id="s6-count-w1" x="137" y="75" text-anchor="middle" font-family="var(--font-mono)" font-size="24" font-weight="900" fill="var(--accent-amber)">0 / 5</text>
+                <text x="137" y="98" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--text-dim)">Limit: 5 reqs</text>
+
+                <!-- Window 2 Box -->
+                <rect id="s6-box-w2" x="285" y="20" width="235" height="95" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="402" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="var(--text-main)">WINDOW 2 (1.0s &ndash; 2.0s)</text>
+                <text id="s6-count-w2" x="402" y="75" text-anchor="middle" font-family="var(--font-mono)" font-size="24" font-weight="900" fill="var(--accent-amber)">0 / 5</text>
+                <text x="402" y="98" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--text-dim)">Limit: 5 reqs</text>
+
+                <!-- Boundary Reset Line -->
+                <line x1="270" y1="10" x2="270" y2="125" stroke="var(--accent-coral)" stroke-width="3" stroke-dasharray="6 6" />
+                <rect x="220" y="128" width="100" height="20" rx="6" fill="var(--accent-coral-dim)" stroke="var(--accent-coral-border)" stroke-width="1" />
+                <text x="270" y="142" text-anchor="middle" font-family="var(--font-mono)" font-size="9" font-weight="800" fill="var(--accent-coral)">RESET (1.0s)</text>
+
+                <!-- Moving Time Needle -->
+                <g id="s6-needle" transform="translate(20, 0)">
+                  <line x1="0" y1="15" x2="0" y2="125" stroke="#2563eb" stroke-width="2.5" />
+                  <polygon points="-5,15 5,15 0,22" fill="#2563eb" />
+                </g>
+
+                <!-- Particles -->
+                <g id="s6-left-particles"></g>
+              </svg>
+            </div>
+
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <p style="font-size: 14px; color: var(--text-muted);">Config: Limit 5 reqs per 1-second window.</p>
-
-              <!-- Timeline Diagram -->
-              <div style="position: relative; padding: 20px 0;">
-                <div style="height: 4px; background: #cbd5e1; width: 100%; position: relative;">
-                  <div style="position: absolute; left: 50%; top: -14px; height: 32px; width: 2px; background: var(--accent-coral);"></div>
-                  <div style="position: absolute; left: 50%; top: 22px; transform: translateX(-50%); font-size: 11px; font-family: var(--font-mono); color: var(--accent-coral); font-weight: 700;">Window Reset (1.0s)</div>
+              <div style="display: flex; justify-content: space-between; gap: 10px;">
+                <div id="s6-card-w1" style="flex: 1; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 10px 14px; border-radius: 8px; text-align: center; transition: all 0.2s;">
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber); font-weight: 700;">t = 0.9s (End of Window 1)</div>
+                  <div id="s6-burst-w1-text" style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
                 </div>
-
-                <div style="display: flex; justify-content: space-between; margin-top: 36px;">
-                  <div style="width: 45%; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 14px; border-radius: 8px; text-align: center;">
-                    <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-amber); font-weight: 700;">t = 0.9s (Window 1)</div>
-                    <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
-                  </div>
-                  <div style="width: 45%; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 14px; border-radius: 8px; text-align: center;">
-                    <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-amber); font-weight: 700;">t = 1.1s (Window 2)</div>
-                    <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
-                  </div>
+                <div id="s6-card-w2" style="flex: 1; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 10px 14px; border-radius: 8px; text-align: center; transition: all 0.2s;">
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber); font-weight: 700;">t = 1.1s (Start of Window 2)</div>
+                  <div id="s6-burst-w2-text" style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
                 </div>
               </div>
 
-              <div style="background: var(--accent-coral-dim); border-left: 4px solid var(--accent-coral); padding: 12px; font-size: 14px; color: #9a3412;">
-                <strong>10 requests allowed in 0.2s!</strong> Double the stated 5/sec limit.
+              <div id="s6-left-alert" style="background: var(--accent-coral-dim); border-left: 4px solid var(--accent-coral); padding: 12px 16px; font-size: 14px; color: #9a3412; border-radius: 4px 8px 8px 4px; margin-top: 10px; transition: all 0.2s;">
+                <strong>10 requests allowed in 0.2s!</strong> Double the stated 5/sec limit across the window reset boundary.
               </div>
             </div>
           </div>
 
-          <!-- Right: Token Bucket Smooth Drain -->
-          <div class="card highlight-green" style="flex: 1;">
-            <div class="card-header-label" style="color: var(--accent-green);">
-              <span class="dot" style="background: var(--accent-green);"></span>
-              Token Bucket: Bursts with Constant Refill
+          <!-- Right: Token Bucket Smooth Drain Animation -->
+          <div class="card highlight-green" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-green);">
+                <span class="dot" style="background: var(--accent-green);"></span>
+                Token Bucket: Bursts with Constant Refill
+              </div>
+              <div id="s6-right-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-green-border); transition: all 0.2s;">
+                Tokens: 5 / 5 (Full Capacity)
+              </div>
             </div>
+
+            <!-- SVG Token Bucket Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
+              <svg id="s6-right-svg" viewBox="0 0 540 150" width="100%" height="150" style="overflow: visible;">
+                <!-- Bucket Graphics -->
+                <path d="M 60 30 L 60 135 C 60 142, 68 145, 78 145 L 182 145 C 192 145, 200 142, 200 135 L 200 30" fill="var(--accent-green-dim)" stroke="var(--accent-green)" stroke-width="3" />
+                <line x1="50" y1="30" x2="210" y2="30" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4" />
+                <text x="130" y="22" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--text-muted)">Max Capacity: 5 Tokens</text>
+
+                <!-- Token Bars inside Bucket (Bottom to Top) -->
+                <rect id="s6-tok-1" x="75" y="122" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-2" x="75" y="101" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-3" x="75" y="80" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-4" x="75" y="59" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-5" x="75" y="38" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+
+                <!-- Status Panel next to bucket -->
+                <rect x="235" y="20" width="285" height="125" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="255" y="45" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="var(--text-muted)">AVAILABLE TOKENS:</text>
+                <text id="s6-tb-tokens-val" x="495" y="50" text-anchor="end" font-family="var(--font-mono)" font-size="24" font-weight="900" fill="var(--accent-green)">5 / 5</text>
+
+                <text id="s6-tb-log-1" x="255" y="75" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--text-body)">&bull; Burst: 5 reqs allowed</text>
+                <text id="s6-tb-log-2" x="255" y="98" font-family="var(--font-mono)" font-size="11" font-weight="800" fill="var(--accent-coral)">&bull; 6th req: 429 Too Many Reqs</text>
+                <text id="s6-tb-log-3" x="255" y="121" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--accent-green)">&bull; Refill: +1 token/sec smooth</text>
+
+                <g id="s6-right-particles"></g>
+              </svg>
+            </div>
+
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <p style="font-size: 14px; color: var(--text-muted);">Capacity: 5 tokens. Refill: 1 token / second.</p>
-
-              <div style="display: flex; gap: 24px; align-items: center; justify-content: center; padding: 10px 0;">
-                <!-- Bucket Visual -->
-                <div style="width: 140px; height: 160px; border: 3px solid var(--accent-green); border-top: none; border-radius: 0 0 16px 16px; background: var(--accent-green-dim); display: flex; flex-direction: column-reverse; padding: 10px; gap: 6px;">
-                  <div style="height: 22px; background: var(--accent-green); border-radius: 4px;"></div>
-                  <div style="height: 22px; background: var(--accent-green); border-radius: 4px;"></div>
-                  <div style="height: 22px; background: var(--accent-green); border-radius: 4px;"></div>
-                  <div style="height: 22px; background: rgba(34, 197, 94, 0.2); border: 1px dashed var(--accent-green); border-radius: 4px;"></div>
-                </div>
-
-                <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.8;">
-                  <div>&bull; Burst up to capacity (5 reqs)</div>
-                  <div>&bull; 6th request: <span style="color: var(--accent-coral); font-weight: 800;">429 Too Many Reqs</span></div>
-                  <div>&bull; Drains smoothly at refill rate</div>
-                </div>
+              <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.8; color: var(--text-body);">
+                <div>&bull; Config: <strong>5 tokens capacity</strong>, refills <strong>1 token / sec</strong></div>
+                <div>&bull; Natural human bursts consume tokens instantly</div>
+                <div>&bull; Overflow is dropped immediately without boundary doubling</div>
               </div>
 
-              <div style="background: var(--accent-green-dim); border-left: 4px solid var(--accent-green); padding: 12px; font-size: 14px; color: #166534;">
-                <strong>Real users are bursty.</strong> Token bucket accommodates natural burstiness without boundary doubling.
+              <div style="background: var(--accent-green-dim); border-left: 4px solid var(--accent-green); padding: 12px 16px; font-size: 14px; color: #166534; border-radius: 4px 8px 8px 4px; margin-top: 10px;">
+                <strong>Real users are bursty.</strong> Token bucket accommodates natural burstiness without doubling the boundary quota.
               </div>
             </div>
           </div>
         </div>
         <div class="speaker-note-content" style="display:none;">
-          <p><strong>Scene 2 & 3: Fixed Window vs Token Bucket:</strong></p>
+          <p><strong>Scene 2 &amp; 3: Fixed Window vs Token Bucket:</strong></p>
           <p>"Fixed window is simple to code with Redis INCR. But watch the boundary: 5 requests at 0.9s, reset at 1.0s, 5 requests at 1.1s."</p>
           <div class="notes-cue">"That's 10 requests hitting your database in 200 milliseconds!"</div>
           <p>Token bucket provides smooth refills and models human usage much better.</p>
         </div>
       </section>
 
-      <!-- ===================================================================
-           SLIDE 7: Episode 2 (Rate Limit) - Scaling Out Matrix
-           =================================================================== -->
       <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="7">
         <div class="slide-header">
           <h2 class="slide-title">Scaling Out: <span class="gradient-text">The Load Balancer Matrix</span></h2>
@@ -1881,12 +1997,14 @@
         // Trigger or stop Looped Animations
         if (currentIndex === 1) {
           startSlide2Loop();
+        } else if (currentIndex === 4) {
+          startSlide5Loop();
+        } else if (currentIndex === 5) {
+          startSlide6Loop();
         } else if (currentIndex === 7) {
           startSlide8Loop();
         } else if (currentIndex === 8) {
           startSlide9Loop();
-        } else if (currentIndex === 9) {
-          startSlide10Loop();
         } else if (currentIndex === 9) {
           startSlide10Loop();
         } else {
@@ -1910,6 +2028,454 @@
         const xt = ax * (t*t*t) + bx * (t*t) + cx * t + p0.x;
         const yt = ay * (t*t*t) + by * (t*t) + cy * t + p0.y;
         return { x: xt, y: yt };
+      }
+
+      // -------------------------------------------------------------
+      // Rate Limit Noisy Neighbor Starvation Controller (Slide 5)
+      // -------------------------------------------------------------
+      let s5AnimTimer = null;
+      let s5Timeouts = [];
+
+      function clearS5Timeouts() {
+        s5Timeouts.forEach(t => clearTimeout(t));
+        s5Timeouts = [];
+      }
+
+      function stopSlide5Loop() {
+        if (s5AnimTimer) { clearInterval(s5AnimTimer); s5AnimTimer = null; }
+        clearS5Timeouts();
+        const lp = document.getElementById('s5-particles-layer');
+        if (lp) lp.innerHTML = '';
+      }
+
+      function startSlide5Loop() {
+        stopAllAnimations();
+        const s5 = document.querySelector('section[data-index="5"]');
+        if (!s5 || !s5.classList.contains('active')) return;
+
+        const badge = document.getElementById('s5-status-badge');
+        const botBar = document.getElementById('s5-bar-bot');
+        const aliceBar = document.getElementById('s5-bar-alice');
+        const capText = document.getElementById('s5-cap-text');
+        const aliceStatus = document.getElementById('s5-alice-status');
+        const stepBot = document.getElementById('s5-step-bot');
+        const stepAlice = document.getElementById('s5-step-alice');
+        const layer = document.getElementById('s5-particles-layer');
+
+        const slotBoxes = [
+          document.getElementById('s5-box-1'),
+          document.getElementById('s5-box-2'),
+          document.getElementById('s5-box-3'),
+          document.getElementById('s5-box-4'),
+          document.getElementById('s5-box-5')
+        ];
+        const slotLabels = [
+          document.getElementById('s5-label-1'),
+          document.getElementById('s5-label-2'),
+          document.getElementById('s5-label-3'),
+          document.getElementById('s5-label-4'),
+          document.getElementById('s5-label-5')
+        ];
+
+        function setSlotState(idx, owner) {
+          const box = slotBoxes[idx];
+          const label = slotLabels[idx];
+          if (!box || !label) return;
+          if (owner === 'bot') {
+            box.setAttribute('fill', 'var(--accent-coral-dim)');
+            box.setAttribute('stroke', 'var(--accent-coral)');
+            box.setAttribute('stroke-width', '2');
+            label.textContent = '🤖 BOT';
+            label.style.fill = 'var(--accent-coral)';
+          } else if (owner === 'alice') {
+            box.setAttribute('fill', 'var(--accent-blue-dim)');
+            box.setAttribute('stroke', 'var(--accent-blue)');
+            box.setAttribute('stroke-width', '2');
+            label.textContent = '👤 ALICE';
+            label.style.fill = 'var(--accent-blue)';
+          } else {
+            box.setAttribute('fill', '#ffffff');
+            box.setAttribute('stroke', '#cbd5e1');
+            box.setAttribute('stroke-width', '1.5');
+            label.textContent = 'IDLE';
+            label.style.fill = 'var(--text-dim)';
+          }
+        }
+
+        function createDot(color, x, y) {
+          if (!layer) return null;
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '6.5');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))');
+          layer.appendChild(circle);
+          return circle;
+        }
+
+        function animateDot(startX, startY, endX, endY, color, duration, onComplete) {
+          const dot = createDot(color, startX, startY);
+          if (!dot) { if (onComplete) onComplete(); return; }
+          const startTime = performance.now();
+          function step(now) {
+            const el = now - startTime;
+            const p = Math.min(el / duration, 1);
+            dot.setAttribute('cx', startX + (endX - startX) * p);
+            dot.setAttribute('cy', startY + (endY - startY) * p);
+            if (p < 1) {
+              requestAnimationFrame(step);
+            } else {
+              dot.remove();
+              if (onComplete) onComplete();
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        function resetAll() {
+          if (layer) layer.innerHTML = '';
+          for (let i = 0; i < 5; i++) setSlotState(i, 'idle');
+          if (botBar) botBar.style.width = '0%';
+          if (aliceBar) aliceBar.style.width = '0%';
+          if (capText) capText.textContent = 'Idle Pool';
+          if (stepBot) { stepBot.style.boxShadow = ''; stepBot.style.borderColor = ''; }
+          if (stepAlice) { stepAlice.style.boxShadow = ''; stepAlice.style.borderColor = ''; }
+          if (aliceStatus) {
+            aliceStatus.innerHTML = 'Waiting for worker availability...';
+          }
+          if (badge) {
+            badge.textContent = 'Pool Status: Idle (0/5 Busy)';
+            badge.style.color = 'var(--text-muted)';
+            badge.style.background = 'var(--bg-subtle)';
+            badge.style.borderColor = 'var(--border-card)';
+          }
+        }
+
+        function runCycle() {
+          const s5Active = document.querySelector('section[data-index="5"]');
+          if (!s5Active || !s5Active.classList.contains('active')) {
+            stopSlide5Loop();
+            return;
+          }
+          clearS5Timeouts();
+          resetAll();
+
+          s5Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Pool Status: Bot Flooding Workers (5/5 Busy)';
+              badge.style.color = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral-dim)';
+              badge.style.borderColor = 'var(--accent-coral-border)';
+            }
+            if (stepBot) {
+              stepBot.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+              stepBot.style.borderColor = 'var(--accent-coral)';
+            }
+            if (botBar) botBar.style.width = '100%';
+            if (capText) capText.textContent = 'Occupies 100% Capacity';
+
+            const slotTargets = [337, 445, 553, 661, 769];
+            [0, 1, 2, 3, 4].forEach((idx, i) => {
+              s5Timeouts.push(setTimeout(() => {
+                animateDot(120, 46, slotTargets[idx], 88, '#ea580c', 380, () => {
+                  setSlotState(idx, 'bot');
+                });
+              }, i * 120));
+            });
+          }, 400));
+
+          s5Timeouts.push(setTimeout(() => {
+            if (stepAlice) {
+              stepAlice.style.boxShadow = '0 0 0 2px var(--accent-blue)';
+              stepAlice.style.borderColor = 'var(--accent-blue)';
+            }
+            if (aliceStatus) {
+              aliceStatus.innerHTML = 'Req #1 queued... waiting for available worker (waited 2.1s)';
+            }
+            animateDot(120, 114, 250, 114, '#2563eb', 450, () => {
+              s5Timeouts.push(setTimeout(() => {
+                setSlotState(4, 'alice');
+                if (botBar) botBar.style.width = '80%';
+                if (aliceBar) aliceBar.style.width = '20%';
+                if (capText) capText.textContent = '80% Bot / 20% Alice';
+                s5Timeouts.push(setTimeout(() => {
+                  setSlotState(4, 'bot');
+                  if (botBar) botBar.style.width = '100%';
+                  if (aliceBar) aliceBar.style.width = '0%';
+                }, 700));
+              }, 400));
+            });
+          }, 2000));
+
+          s5Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Starvation Alert: Alice Req #3 TIMEOUT (504)';
+              badge.style.color = '#ffffff';
+              badge.style.background = 'var(--accent-coral)';
+              badge.style.borderColor = 'var(--accent-coral)';
+            }
+            if (stepAlice) {
+              stepAlice.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+              stepAlice.style.borderColor = 'var(--accent-coral)';
+            }
+            if (aliceStatus) {
+              aliceStatus.innerHTML = 'Req #1 waited 2.1s &bull; Req #2 waited 2.3s &bull; Req #3: <strong style="color:#ffffff; background:var(--accent-coral); padding:2px 6px; border-radius:4px;">TIMEOUT (504)</strong>';
+            }
+            if (botBar) botBar.style.width = '94%';
+            if (aliceBar) aliceBar.style.width = '6%';
+            if (capText) capText.textContent = 'Occupies 94% Capacity';
+
+            animateDot(120, 114, 250, 114, '#ef4444', 450);
+          }, 4400));
+        }
+
+        runCycle();
+        s5AnimTimer = setInterval(runCycle, 7200);
+      }
+
+      // -------------------------------------------------------------
+      // Rate Limit Fixed Window vs Token Bucket Controller (Slide 6)
+      // -------------------------------------------------------------
+      let s6AnimTimer = null;
+      let s6Timeouts = [];
+
+      function clearS6Timeouts() {
+        s6Timeouts.forEach(t => clearTimeout(t));
+        s6Timeouts = [];
+      }
+
+      function stopSlide6Loop() {
+        if (s6AnimTimer) { clearInterval(s6AnimTimer); s6AnimTimer = null; }
+        clearS6Timeouts();
+        const lp = document.getElementById('s6-left-particles');
+        if (lp) lp.innerHTML = '';
+        const rp = document.getElementById('s6-right-particles');
+        if (rp) rp.innerHTML = '';
+      }
+
+      function startSlide6Loop() {
+        stopAllAnimations();
+        const s6 = document.querySelector('section[data-index="6"]');
+        if (!s6 || !s6.classList.contains('active')) return;
+
+        const leftBadge = document.getElementById('s6-left-badge');
+        const countW1 = document.getElementById('s6-count-w1');
+        const countW2 = document.getElementById('s6-count-w2');
+        const boxW1 = document.getElementById('s6-box-w1');
+        const boxW2 = document.getElementById('s6-box-w2');
+        const cardW1 = document.getElementById('s6-card-w1');
+        const cardW2 = document.getElementById('s6-card-w2');
+        const leftAlert = document.getElementById('s6-left-alert');
+        const needle = document.getElementById('s6-needle');
+        const leftLayer = document.getElementById('s6-left-particles');
+
+        const rightBadge = document.getElementById('s6-right-badge');
+        const tbTokensVal = document.getElementById('s6-tb-tokens-val');
+        const tbLog1 = document.getElementById('s6-tb-log-1');
+        const tbLog2 = document.getElementById('s6-tb-log-2');
+        const tbLog3 = document.getElementById('s6-tb-log-3');
+        const rightLayer = document.getElementById('s6-right-particles');
+        const tokens = [
+          document.getElementById('s6-tok-1'),
+          document.getElementById('s6-tok-2'),
+          document.getElementById('s6-tok-3'),
+          document.getElementById('s6-tok-4'),
+          document.getElementById('s6-tok-5')
+        ];
+
+        function setTokensCount(n) {
+          if (tbTokensVal) {
+            tbTokensVal.textContent = n + ' / 5';
+            tbTokensVal.style.color = n > 0 ? 'var(--accent-green)' : 'var(--accent-coral)';
+          }
+          if (rightBadge) {
+            if (n === 5) {
+              rightBadge.textContent = 'Tokens: 5 / 5 (Full Capacity)';
+              rightBadge.style.color = 'var(--accent-green)';
+              rightBadge.style.background = 'var(--accent-green-dim)';
+              rightBadge.style.borderColor = 'var(--accent-green-border)';
+            } else if (n === 0) {
+              rightBadge.textContent = 'Tokens: 0 / 5 (Exhausted)';
+              rightBadge.style.color = 'var(--accent-coral)';
+              rightBadge.style.background = 'var(--accent-coral-dim)';
+              rightBadge.style.borderColor = 'var(--accent-coral-border)';
+            } else {
+              rightBadge.textContent = 'Tokens: ' + n + ' / 5 (Refilling)';
+              rightBadge.style.color = 'var(--accent-amber)';
+              rightBadge.style.background = 'var(--accent-amber-dim)';
+              rightBadge.style.borderColor = 'var(--accent-amber-border)';
+            }
+          }
+          tokens.forEach((tok, i) => {
+            if (!tok) return;
+            if (i < n) {
+              tok.style.opacity = '1';
+              tok.style.transform = 'scale(1)';
+            } else {
+              tok.style.opacity = '0.08';
+              tok.style.transform = 'scale(0.95)';
+            }
+          });
+        }
+
+        function dropParticle(x, yTarget, color, layer, onDone) {
+          if (!layer) return;
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('cx', x);
+          dot.setAttribute('cy', '10');
+          dot.setAttribute('r', '6');
+          dot.setAttribute('fill', color);
+          dot.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))');
+          layer.appendChild(dot);
+
+          const start = performance.now();
+          const dur = 300;
+          function anim(now) {
+            const p = Math.min((now - start) / dur, 1);
+            const cy = 10 + p * (yTarget - 10);
+            dot.setAttribute('cy', cy);
+            if (p < 1) {
+              requestAnimationFrame(anim);
+            } else {
+              dot.remove();
+              if (onDone) onDone();
+            }
+          }
+          requestAnimationFrame(anim);
+        }
+
+        function runCycle() {
+          const s6Active = document.querySelector('section[data-index="6"]');
+          if (!s6Active || !s6Active.classList.contains('active')) {
+            stopSlide6Loop();
+            return;
+          }
+          clearS6Timeouts();
+          if (leftLayer) leftLayer.innerHTML = '';
+          if (rightLayer) rightLayer.innerHTML = '';
+
+          // Reset Left Side Visuals
+          if (countW1) countW1.textContent = '0 / 5';
+          if (countW2) countW2.textContent = '0 / 5';
+          if (boxW1) { boxW1.setAttribute('stroke', '#cbd5e1'); boxW1.setAttribute('fill', '#ffffff'); }
+          if (boxW2) { boxW2.setAttribute('stroke', '#cbd5e1'); boxW2.setAttribute('fill', '#ffffff'); }
+          if (cardW1) { cardW1.style.background = 'var(--accent-amber-dim)'; cardW1.style.boxShadow = 'none'; }
+          if (cardW2) { cardW2.style.background = 'var(--accent-amber-dim)'; cardW2.style.boxShadow = 'none'; }
+          if (leftAlert) { leftAlert.style.transform = 'scale(1)'; leftAlert.style.borderColor = 'var(--accent-coral)'; }
+          if (needle) needle.setAttribute('transform', 'translate(20, 0)');
+          if (leftBadge) {
+            leftBadge.textContent = 'Timeline: 0.0s (Window 1)';
+            leftBadge.style.color = 'var(--accent-amber)';
+          }
+
+          // Reset Right Side Visuals
+          setTokensCount(5);
+          if (tbLog1) tbLog1.style.fontWeight = '700';
+          if (tbLog2) tbLog2.style.fontWeight = '700';
+          if (tbLog3) tbLog3.style.fontWeight = '700';
+
+          // --- TIMELINE STEP 1: needle moves to 0.9s (end of window 1) ---
+          s6Timeouts.push(setTimeout(() => {
+            if (needle) needle.setAttribute('transform', 'translate(225, 0)');
+            if (leftBadge) leftBadge.textContent = 'Timeline: 0.9s (Window 1 Burst)';
+            if (cardW1) {
+              cardW1.style.boxShadow = '0 0 0 2px var(--accent-amber)';
+              cardW1.style.background = '#fef3c7';
+            }
+            if (boxW1) {
+              boxW1.setAttribute('stroke', 'var(--accent-amber)');
+              boxW1.setAttribute('fill', 'var(--accent-amber-dim)');
+            }
+            if (countW1) countW1.textContent = '5 / 5';
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                dropParticle(50 + i * 40, 75, 'var(--accent-amber)', leftLayer);
+              }, i * 60);
+            }
+          }, 800));
+
+          // Right Side: 5 Requests Burst (drains 5 tokens instantly)
+          s6Timeouts.push(setTimeout(() => {
+            setTokensCount(0);
+            if (tbLog1) {
+              tbLog1.style.fontWeight = '900';
+              tbLog1.style.color = '#15803d';
+            }
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                dropParticle(280 + i * 35, 75, 'var(--accent-green)', rightLayer);
+              }, i * 50);
+            }
+          }, 900));
+
+          // --- TIMELINE STEP 2: needle crosses boundary into 1.1s (start of window 2) ---
+          s6Timeouts.push(setTimeout(() => {
+            if (needle) needle.setAttribute('transform', 'translate(315, 0)');
+            if (leftBadge) {
+              leftBadge.textContent = 'Timeline: 1.1s (Window 2 Reset & Burst)';
+              leftBadge.style.color = 'var(--accent-coral)';
+            }
+            if (cardW2) {
+              cardW2.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+              cardW2.style.background = '#fee2e2';
+            }
+            if (boxW2) {
+              boxW2.setAttribute('stroke', 'var(--accent-coral)');
+              boxW2.setAttribute('fill', 'var(--accent-coral-dim)');
+            }
+            if (countW2) countW2.textContent = '5 / 5';
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                dropParticle(315 + i * 40, 75, 'var(--accent-coral)', leftLayer);
+              }, i * 60);
+            }
+
+            if (leftAlert) {
+              leftAlert.style.transform = 'scale(1.02)';
+              leftAlert.style.boxShadow = '0 4px 12px rgba(234,88,12,0.2)';
+            }
+          }, 2600));
+
+          // Right Side: 6th Request Arrives & Gets Blocked with 429
+          s6Timeouts.push(setTimeout(() => {
+            if (tbLog2) {
+              tbLog2.style.fontWeight = '900';
+              tbLog2.style.color = '#dc2626';
+            }
+            dropParticle(380, 98, '#dc2626', rightLayer, () => {
+              const blk = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              blk.setAttribute('x', '380');
+              blk.setAttribute('y', '98');
+              blk.setAttribute('text-anchor', 'middle');
+              blk.setAttribute('font-family', 'var(--font-mono)');
+              blk.setAttribute('font-size', '11');
+              blk.setAttribute('font-weight', '900');
+              blk.setAttribute('fill', '#dc2626');
+              blk.textContent = '429 BLOCKED';
+              if (rightLayer) rightLayer.appendChild(blk);
+              setTimeout(() => blk.remove(), 1200);
+            });
+          }, 2700));
+
+          // Right Side: Smooth Refill (+1 token at 4.2s, +1 token at 5.5s)
+          s6Timeouts.push(setTimeout(() => {
+            setTokensCount(1);
+            if (tbLog3) {
+              tbLog3.style.fontWeight = '900';
+              tbLog3.style.color = 'var(--accent-green)';
+            }
+            dropParticle(130, 122, 'var(--accent-green)', rightLayer);
+          }, 4200));
+
+          s6Timeouts.push(setTimeout(() => {
+            setTokensCount(2);
+            dropParticle(130, 101, 'var(--accent-green)', rightLayer);
+          }, 5500));
+        }
+
+        runCycle();
+        s6AnimTimer = setInterval(runCycle, 7500);
       }
 
       // -------------------------------------------------------------
@@ -2106,6 +2672,8 @@
 
       function stopAllAnimations() {
         stopSlide2Loop();
+        stopSlide5Loop();
+        stopSlide6Loop();
         stopSlide10Loop();
         if (s8AnimTimer) { clearInterval(s8AnimTimer); s8AnimTimer = null; }
         if (s9AnimTimer) { clearInterval(s9AnimTimer); s9AnimTimer = null; }
@@ -2571,6 +3139,10 @@
         });
         if (currentIndex === 1) {
           startSlide2Loop();
+        } else if (currentIndex === 4) {
+          startSlide5Loop();
+        } else if (currentIndex === 5) {
+          startSlide6Loop();
         } else if (currentIndex === 7) {
           startSlide8Loop();
         } else if (currentIndex === 8) {

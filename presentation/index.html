@@ -1705,35 +1705,42 @@
         <div class="slide-content">
           <!-- Left: The Blast Radius Architecture -->
           <div class="card highlight-coral" style="flex: 1.1;">
-            <div class="card-header-label" style="color: var(--accent-coral);">
-              <span class="dot" style="background: var(--accent-coral);"></span>
-              Coarse Boundary: 1 Breaker Wrapped Around All 3
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div class="card-header-label" style="color: var(--accent-coral); margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-coral);"></span>
+                Coarse Boundary: 1 Breaker Wrapped Around All 3
+              </div>
+              <div id="s11-status-badge" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 12px; border-radius: 9999px; border: 1.5px solid var(--accent-green); background: var(--accent-green-dim); color: var(--text-main);">
+                State: All Couriers Healthy
+              </div>
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
               <!-- Outer Box representing single breaker -->
-              <div style="border: 2px dashed var(--accent-coral); border-radius: 12px; padding: 20px; background: var(--accent-coral-dim);">
+              <div id="s11-breaker-box" style="border: 2px dashed var(--accent-green); border-radius: 12px; padding: 20px; background: var(--accent-green-dim); transition: all 0.3s ease;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                  <span style="font-family: var(--font-mono); font-size: 13px; color: var(--accent-coral); font-weight: 800;">[Shared Checkout Breaker: OPEN]</span>
-                  <span style="background: var(--accent-coral); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 800;">BLOCKED</span>
+                  <span id="s11-breaker-label" style="font-size: 13px; color: var(--text-main); font-weight: 800; letter-spacing: 0.05em;">[Shared Checkout Breaker: CLOSED]</span>
+                  <span id="s11-breaker-state-pill" style="background: var(--accent-green); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 800; letter-spacing: 0.05em;">PASSING</span>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                  <div style="flex: 1; background: #ffffff; border: 1px solid var(--accent-green-border); padding: 12px; border-radius: 8px; text-align: center;">
+                  <div id="s11-courier-a" style="flex: 1; background: #ffffff; border: 2px solid var(--border-card); padding: 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease;">
                     <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;">Courier A</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">Healthy ✓</div>
+                    <div id="s11-courier-a-sub" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Healthy ✓</div>
                   </div>
-                  <div style="flex: 1; background: #ffffff; border: 1px solid var(--accent-coral-border); padding: 12px; border-radius: 8px; text-align: center;">
-                    <div style="font-weight: 800; color: var(--accent-coral); font-size: 14px;">Courier B</div>
-                    <div style="font-size: 11px; color: var(--accent-coral);">Down ✗</div>
+                  <div id="s11-courier-b" style="flex: 1; background: #ffffff; border: 2px solid var(--border-card); padding: 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease;">
+                    <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;" id="s11-courier-b-title">Courier B</div>
+                    <div id="s11-courier-b-sub" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Healthy ✓</div>
                   </div>
-                  <div style="flex: 1; background: #ffffff; border: 1px solid var(--accent-green-border); padding: 12px; border-radius: 8px; text-align: center;">
+                  <div id="s11-courier-c" style="flex: 1; background: #ffffff; border: 2px solid var(--border-card); padding: 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease;">
                     <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;">Courier C</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">Healthy ✓</div>
+                    <div id="s11-courier-c-sub" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Healthy ✓</div>
                   </div>
                 </div>
               </div>
 
-              <div style="background: #ffffff; border: 1px solid var(--accent-coral-border); border-radius: 8px; padding: 14px; font-size: 14px; color: #9a3412;">
-                <strong>Checkout #4 Result:</strong> “No shipping quotes available: shared circuit open.” Customers cannot buy anything!
+              <!-- Animated Checkout Log Row -->
+              <div id="s11-log-box" style="background: #ffffff; border: 2px solid var(--border-card); border-radius: 8px; padding: 14px; font-size: 14px; color: var(--text-body); transition: all 0.3s ease;">
+                <span id="s11-log-title" style="font-weight: 800; color: var(--text-main);">Checkout Flow:</span>
+                <span id="s11-log-detail">Waiting for customer checkouts...</span>
               </div>
             </div>
           </div>
@@ -1776,36 +1783,41 @@
         <div class="slide-content">
           <!-- Left: Isolated Breakers Diagram -->
           <div class="card highlight-green" style="flex: 1.1;">
-            <div class="card-header-label" style="color: var(--accent-green);">
-              <span class="dot" style="background: var(--accent-green);"></span>
-              Fine-Grained Boundary: Breaker Per Courier
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div class="card-header-label" style="color: var(--accent-green); margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-green);"></span>
+                Fine-Grained Boundary: Breaker Per Courier
+              </div>
+              <div id="s12-status-badge" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 12px; border-radius: 9999px; border: 1.5px solid var(--accent-green); background: var(--accent-green-dim); color: var(--text-main);">
+                Phase: Isolated Failure
+              </div>
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
               <div style="display: flex; gap: 12px;">
                 <!-- Courier A Box -->
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green);">
+                <div id="s12-card-a" class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green); transition: all 0.3s ease;">
                   <div class="label" style="color: var(--text-main);">Courier A</div>
-                  <div style="color: var(--accent-green); font-size: 13px; font-family: var(--font-mono); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Quotes: $15.00 ✓</div>
+                  <div id="s12-state-a" style="color: var(--accent-green); font-size: 13px; font-family: var(--font-sans); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
+                  <div id="s12-quote-a" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Quotes: $15.00 ✓</div>
                 </div>
 
                 <!-- Courier B Box -->
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-coral); background: var(--accent-coral-dim);">
+                <div id="s12-card-b" class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-coral); background: var(--accent-coral-dim); transition: all 0.3s ease;">
                   <div class="label" style="color: var(--text-main);">Courier B</div>
-                  <div style="color: var(--accent-coral); font-size: 13px; font-family: var(--font-mono); font-weight: 800; margin: 6px 0;">[OPEN]</div>
-                  <div style="font-size: 12px; color: var(--accent-coral); font-weight: 600;">Fast-fail (0ms) ✗</div>
+                  <div id="s12-state-b" style="color: var(--accent-coral); font-size: 13px; font-family: var(--font-sans); font-weight: 800; margin: 6px 0;">[OPEN]</div>
+                  <div id="s12-quote-b" style="font-size: 12px; color: var(--accent-coral); font-weight: 700;">Fast-fail (0ms) ✗</div>
                 </div>
 
                 <!-- Courier C Box -->
-                <div class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green);">
+                <div id="s12-card-c" class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green); transition: all 0.3s ease;">
                   <div class="label" style="color: var(--text-main);">Courier C</div>
-                  <div style="color: var(--accent-green); font-size: 13px; font-family: var(--font-mono); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
-                  <div style="font-size: 12px; color: var(--text-muted);">Quotes: $18.50 ✓</div>
+                  <div id="s12-state-c" style="color: var(--accent-green); font-size: 13px; font-family: var(--font-sans); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
+                  <div id="s12-quote-c" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Quotes: $18.50 ✓</div>
                 </div>
               </div>
 
-              <div style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); border-radius: 8px; padding: 14px; font-size: 14px; color: #166534;">
-                <strong>Checkout #4 Customer Experience:</strong> “Quotes available from Courier A ($15) and Courier C ($18.50). Courier B is temporarily unavailable.” Sale completes!
+              <div id="s12-log-box" style="background: var(--accent-green-dim); border: 2px solid var(--accent-green); border-radius: 8px; padding: 14px; font-size: 14px; color: var(--text-main); transition: all 0.3s ease;">
+                <strong>Checkout Experience:</strong> <span id="s12-log-text">“Quotes available from Courier A ($15) and Courier C ($18.50). Courier B isolated.” Sale completes!</span>
               </div>
             </div>
           </div>
@@ -1817,21 +1829,21 @@
               Recovery Is Tested, Not Assumed
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
-              <div style="font-family: var(--font-mono); font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
-                <div class="step-box" style="margin: 0; padding: 10px 14px;">
+              <div style="font-family: var(--font-sans); font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
+                <div id="s12-step-1" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
                   <span>1. Cooldown passes &rarr; B enters <strong>HALF-OPEN</strong></span>
                 </div>
-                <div class="step-box" style="margin: 0; padding: 10px 14px;">
+                <div id="s12-step-2" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
                   <span>2. Single test probe admitted to B</span>
                 </div>
-                <div class="step-box good" style="margin: 0; padding: 10px 14px;">
+                <div id="s12-step-3" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
                   <span>3. Probe succeeds &rarr; B transitions to <strong>CLOSED</strong></span>
                 </div>
-                <div class="step-box" style="margin: 0; padding: 10px 14px;">
+                <div id="s12-step-4" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
                   <span>4. All 3 couriers available again</span>
                 </div>
               </div>
-              <div style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); padding: 12px; border-radius: 8px; font-size: 13px; color: #1e40af;">
+              <div style="background: var(--accent-blue-dim); border: 2px solid var(--accent-blue); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-main); font-weight: 600;">
                 Traffic is restored only after evidence of recovery, never just timer assumptions.
               </div>
             </div>
@@ -2023,6 +2035,10 @@
           startSlide9Loop();
         } else if (currentIndex === 9) {
           startSlide10Loop();
+        } else if (currentIndex === 10) {
+          startSlide11Loop();
+        } else if (currentIndex === 11) {
+          startSlide12Loop();
         } else {
           stopAllAnimations();
         }
@@ -2686,11 +2702,346 @@
         if (rp) rp.innerHTML = '';
       }
 
+      // -------------------------------------------------------------
+      // Slide 11: Shared Breaker Blast Radius Looped Animation
+      // -------------------------------------------------------------
+      let s11AnimTimer = null;
+      let s11Timeouts = [];
+
+      function clearS11Timeouts() {
+        s11Timeouts.forEach(t => clearTimeout(t));
+        s11Timeouts = [];
+      }
+
+      function stopSlide11Loop() {
+        if (s11AnimTimer) { clearInterval(s11AnimTimer); s11AnimTimer = null; }
+        clearS11Timeouts();
+      }
+
+      function startSlide11Loop() {
+        stopAllAnimations();
+        const s11 = document.querySelector('section[data-index="11"]');
+        if (!s11 || !s11.classList.contains('active')) return;
+
+        const badge = document.getElementById('s11-status-badge');
+        const box = document.getElementById('s11-breaker-box');
+        const label = document.getElementById('s11-breaker-label');
+        const pill = document.getElementById('s11-breaker-state-pill');
+        const bTitle = document.getElementById('s11-courier-b-title');
+        const bSub = document.getElementById('s11-courier-b-sub');
+        const courierB = document.getElementById('s11-courier-b');
+        const courierA = document.getElementById('s11-courier-a');
+        const courierC = document.getElementById('s11-courier-c');
+        const logBox = document.getElementById('s11-log-box');
+        const logTitle = document.getElementById('s11-log-title');
+        const logDetail = document.getElementById('s11-log-detail');
+
+        function resetVisuals() {
+          if (badge) {
+            badge.textContent = 'State: All Couriers Healthy';
+            badge.style.borderColor = 'var(--accent-green)';
+            badge.style.background = 'var(--accent-green-dim)';
+            badge.style.color = 'var(--text-main)';
+          }
+          if (box) {
+            box.style.borderColor = 'var(--accent-green)';
+            box.style.background = 'var(--accent-green-dim)';
+          }
+          if (label) {
+            label.textContent = '[Shared Checkout Breaker: CLOSED]';
+            label.style.color = 'var(--text-main)';
+          }
+          if (pill) {
+            pill.textContent = 'PASSING';
+            pill.style.background = 'var(--accent-green)';
+          }
+          [courierA, courierC].forEach(el => {
+            if (el) {
+              el.style.opacity = '1';
+              el.style.borderColor = 'var(--border-card)';
+            }
+          });
+          if (courierB) {
+            courierB.style.opacity = '1';
+            courierB.style.borderColor = 'var(--border-card)';
+          }
+          if (bTitle) {
+            bTitle.textContent = 'Courier B';
+            bTitle.style.color = 'var(--accent-green)';
+          }
+          if (bSub) {
+            bSub.textContent = 'Healthy ✓';
+            bSub.style.color = 'var(--text-muted)';
+          }
+          if (logBox) {
+            logBox.style.borderColor = 'var(--border-card)';
+            logBox.style.background = '#ffffff';
+          }
+          if (logTitle) logTitle.textContent = 'Checkout #1 - #3:';
+          if (logDetail) logDetail.textContent = ' Couriers A & C return quotes ($15, $18.50). Courier B times out (3.0s).';
+        }
+
+        function runCycle() {
+          const s11Active = document.querySelector('section[data-index="11"]');
+          if (!s11Active || !s11Active.classList.contains('active')) {
+            stopSlide11Loop();
+            return;
+          }
+          clearS11Timeouts();
+          resetVisuals();
+
+          // Phase 1: Courier B starts failing
+          s11Timeouts.push(setTimeout(() => {
+            if (courierB) {
+              courierB.style.borderColor = 'var(--accent-coral)';
+              courierB.style.background = 'var(--accent-coral-dim)';
+            }
+            if (bTitle) {
+              bTitle.textContent = 'Courier B (Fail #1)';
+              bTitle.style.color = 'var(--accent-coral)';
+            }
+            if (bSub) {
+              bSub.textContent = 'Timeout (3000ms) ✗';
+              bSub.style.color = 'var(--accent-coral)';
+            }
+            if (badge) {
+              badge.textContent = 'Downstream: Courier B Timeout (1/3)';
+              badge.style.borderColor = 'var(--accent-amber)';
+              badge.style.background = 'var(--accent-amber-dim)';
+            }
+          }, 1200));
+
+          // Phase 2: Courier B accumulates failures 2 & 3
+          s11Timeouts.push(setTimeout(() => {
+            if (bTitle) bTitle.textContent = 'Courier B (Fail #3 - THRESHOLD)';
+            if (badge) {
+              badge.textContent = 'Shared Breaker: 3 Failures Recorded → TRIPPING';
+              badge.style.borderColor = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral-dim)';
+            }
+          }, 2400));
+
+          // Phase 3: Shared breaker trips OPEN, killing A & C as collateral
+          s11Timeouts.push(setTimeout(() => {
+            if (box) {
+              box.style.borderColor = 'var(--accent-coral)';
+              box.style.background = 'var(--accent-coral-dim)';
+            }
+            if (label) {
+              label.textContent = '[Shared Checkout Breaker: OPEN]';
+              label.style.color = 'var(--accent-coral)';
+            }
+            if (pill) {
+              pill.textContent = 'BLOCKED (0ms)';
+              pill.style.background = 'var(--accent-coral)';
+            }
+            if (badge) {
+              badge.textContent = 'BLAST RADIUS: All 3 Couriers Killed!';
+              badge.style.borderColor = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral)';
+              badge.style.color = '#ffffff';
+            }
+            // Mute / block healthy couriers A & C to visualize blast radius
+            [courierA, courierC].forEach(el => {
+              if (el) {
+                el.style.opacity = '0.45';
+                el.style.borderColor = 'var(--accent-coral)';
+              }
+            });
+            if (logBox) {
+              logBox.style.borderColor = 'var(--accent-coral)';
+              logBox.style.background = 'var(--accent-coral-dim)';
+            }
+            if (logTitle) {
+              logTitle.textContent = 'Checkout #4 Result:';
+              logTitle.style.color = 'var(--accent-coral)';
+            }
+            if (logDetail) {
+              logDetail.innerHTML = ' <strong>“No shipping quotes available: shared circuit open.”</strong> Customer cart abandoned!';
+            }
+          }, 3600));
+        }
+
+        runCycle();
+        s11AnimTimer = setInterval(runCycle, 6200);
+      }
+
+      // -------------------------------------------------------------
+      // Slide 12: Fine-Grained Breaker & Probe Recovery Looped Animation
+      // -------------------------------------------------------------
+      let s12AnimTimer = null;
+      let s12Timeouts = [];
+
+      function clearS12Timeouts() {
+        s12Timeouts.forEach(t => clearTimeout(t));
+        s12Timeouts = [];
+      }
+
+      function stopSlide12Loop() {
+        if (s12AnimTimer) { clearInterval(s12AnimTimer); s12AnimTimer = null; }
+        clearS12Timeouts();
+      }
+
+      function startSlide12Loop() {
+        stopAllAnimations();
+        const s12 = document.querySelector('section[data-index="12"]');
+        if (!s12 || !s12.classList.contains('active')) return;
+
+        const badge = document.getElementById('s12-status-badge');
+        const cardB = document.getElementById('s12-card-b');
+        const stateB = document.getElementById('s12-state-b');
+        const quoteB = document.getElementById('s12-quote-b');
+        const logBox = document.getElementById('s12-log-box');
+        const logText = document.getElementById('s12-log-text');
+
+        const step1 = document.getElementById('s12-step-1');
+        const step2 = document.getElementById('s12-step-2');
+        const step3 = document.getElementById('s12-step-3');
+        const step4 = document.getElementById('s12-step-4');
+
+        function resetSteps() {
+          [step1, step2, step3, step4].forEach(s => {
+            if (s) {
+              s.className = 'step-box';
+              s.style.background = '#ffffff';
+              s.style.borderColor = 'var(--border-card)';
+              s.style.color = 'var(--text-body)';
+            }
+          });
+        }
+
+        function resetVisuals() {
+          resetSteps();
+          if (badge) {
+            badge.textContent = 'Phase: Isolated Failure (B is OPEN)';
+            badge.style.borderColor = 'var(--accent-coral)';
+            badge.style.background = 'var(--accent-coral-dim)';
+            badge.style.color = 'var(--accent-coral)';
+          }
+          if (cardB) {
+            cardB.style.borderTopColor = 'var(--accent-coral)';
+            cardB.style.background = 'var(--accent-coral-dim)';
+          }
+          if (stateB) {
+            stateB.textContent = '[OPEN]';
+            stateB.style.color = 'var(--accent-coral)';
+          }
+          if (quoteB) {
+            quoteB.textContent = 'Fast-fail (0ms) ✗';
+            quoteB.style.color = 'var(--accent-coral)';
+          }
+          if (logBox) {
+            logBox.style.background = 'var(--accent-green-dim)';
+            logBox.style.borderColor = 'var(--accent-green)';
+          }
+          if (logText) {
+            logText.textContent = '“Quotes available from Courier A ($15) and Courier C ($18.50). Courier B isolated.” Sale completes!';
+          }
+        }
+
+        function runCycle() {
+          const s12Active = document.querySelector('section[data-index="12"]');
+          if (!s12Active || !s12Active.classList.contains('active')) {
+            stopSlide12Loop();
+            return;
+          }
+          clearS12Timeouts();
+          resetVisuals();
+
+          // Step 1: Cooldown passes -> B enters HALF-OPEN
+          s12Timeouts.push(setTimeout(() => {
+            if (step1) {
+              step1.className = 'step-box warn';
+              step1.style.borderColor = 'var(--accent-amber)';
+              step1.style.background = 'var(--accent-amber-dim)';
+              step1.style.color = 'var(--text-main)';
+            }
+            if (stateB) {
+              stateB.textContent = '[HALF-OPEN]';
+              stateB.style.color = 'var(--accent-amber)';
+            }
+            if (cardB) {
+              cardB.style.borderTopColor = 'var(--accent-amber)';
+              cardB.style.background = 'var(--accent-amber-dim)';
+            }
+            if (quoteB) {
+              quoteB.textContent = 'Cooldown Expired (Testing)';
+              quoteB.style.color = 'var(--text-muted)';
+            }
+            if (badge) {
+              badge.textContent = 'Phase: Cooldown Expired → Testing 1 Probe';
+              badge.style.borderColor = 'var(--accent-amber)';
+              badge.style.background = 'var(--accent-amber-dim)';
+              badge.style.color = 'var(--text-main)';
+            }
+          }, 1400));
+
+          // Step 2: Single probe admitted
+          s12Timeouts.push(setTimeout(() => {
+            if (step2) {
+              step2.className = 'step-box warn';
+              step2.style.borderColor = 'var(--accent-amber)';
+              step2.style.background = 'var(--accent-amber-dim)';
+              step2.style.color = 'var(--text-main)';
+            }
+            if (quoteB) {
+              quoteB.textContent = 'Sending Probe Call...';
+            }
+          }, 2600));
+
+          // Step 3: Probe succeeds -> B transitions to CLOSED
+          s12Timeouts.push(setTimeout(() => {
+            if (step3) {
+              step3.className = 'step-box good';
+              step3.style.borderColor = 'var(--accent-green)';
+              step3.style.background = 'var(--accent-green-dim)';
+              step3.style.color = 'var(--text-main)';
+            }
+            if (cardB) {
+              cardB.style.borderTopColor = 'var(--accent-green)';
+              cardB.style.background = '#ffffff';
+            }
+            if (stateB) {
+              stateB.textContent = '[CLOSED]';
+              stateB.style.color = 'var(--accent-green)';
+            }
+            if (quoteB) {
+              quoteB.textContent = 'Quotes: $22.00 ✓ (200 OK)';
+              quoteB.style.color = 'var(--accent-green)';
+            }
+            if (badge) {
+              badge.textContent = 'Phase: Probe Succeeded → B Restored!';
+              badge.style.borderColor = 'var(--accent-green)';
+              badge.style.background = 'var(--accent-green-dim)';
+              badge.style.color = 'var(--text-main)';
+            }
+          }, 3800));
+
+          // Step 4: All 3 couriers available
+          s12Timeouts.push(setTimeout(() => {
+            if (step4) {
+              step4.className = 'step-box good';
+              step4.style.borderColor = 'var(--accent-green)';
+              step4.style.background = 'var(--accent-green-dim)';
+              step4.style.color = 'var(--text-main)';
+            }
+            if (logText) {
+              logText.textContent = '“All 3 couriers available: A ($15), B ($22), C ($18.50). Full redundancy restored!”';
+            }
+          }, 4800));
+        }
+
+        runCycle();
+        s12AnimTimer = setInterval(runCycle, 6800);
+      }
+
       function stopAllAnimations() {
         stopSlide2Loop();
         stopSlide5Loop();
         stopSlide6Loop();
         stopSlide10Loop();
+        stopSlide11Loop();
+        stopSlide12Loop();
         if (s8AnimTimer) { clearInterval(s8AnimTimer); s8AnimTimer = null; }
         if (s9AnimTimer) { clearInterval(s9AnimTimer); s9AnimTimer = null; }
         const p8 = document.getElementById('s8-particles-layer');
@@ -3165,6 +3516,10 @@
           startSlide9Loop();
         } else if (currentIndex === 9) {
           startSlide10Loop();
+        } else if (currentIndex === 10) {
+          startSlide11Loop();
+        } else if (currentIndex === 11) {
+          startSlide12Loop();
         }
       }
 

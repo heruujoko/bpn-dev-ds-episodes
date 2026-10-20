@@ -247,6 +247,11 @@
       background: #ffffff;
     }
 
+    .card.highlight-purple {
+      border-color: var(--accent-purple);
+      background: #ffffff;
+    }
+
     .card-header-label {
       font-size: 13px;
       font-weight: 800;
@@ -609,7 +614,7 @@
     <header>
       <div class="badge-episode" id="header-tag">EPISODE 00 // INTRO</div>
       <div class="slide-counter">
-        <span class="current" id="counter-current">01</span> / <span id="counter-total">13</span>
+        <span class="current" id="counter-current">01</span> / <span id="counter-total">14</span>
       </div>
     </header>
 
@@ -1919,6 +1924,118 @@
           <p>"To wrap up: AI is an incredible junior-to-mid developer that writes code instantly. But AI does not understand your blast radius or your business liability."</p>
           <div class="notes-cue">"Know what your AI is building. Choose the architecture. Thank you!"</div>
           <p>Open for Q&A with Heru.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 14: Thank You & Contact / Follow-up
+           =================================================================== -->
+      <section class="slide" data-ep="CONNECT // THANK YOU" data-index="14">
+        <div class="slide-header">
+          <h2 class="slide-title">Thank You! <span class="title-accent">Let's Connect &amp; Collaborate</span></h2>
+          <p class="slide-subtitle">Open for Q&amp;A, architecture discussions, and engineering collaboration.</p>
+        </div>
+        <div class="slide-content" style="align-items: stretch; gap: 28px;">
+
+          <!-- Profile Card (Left) -->
+          <div class="card" style="width: 440px; flex-shrink: 0; align-items: center; text-align: center; justify-content: space-between; padding: 24px; border: 2px solid var(--text-main);">
+            <div style="width: 100%; height: 440px; border-radius: 12px; overflow: hidden; border: 2px solid var(--text-main); background: #f3f3f3;">
+              <img src="./heru.jpg" alt="Heru Joko Priyo Utomo" style="width: 100%; height: 100%; object-fit: cover; object-position: center center; display: block;" />
+            </div>
+            <div style="margin-top: 20px; width: 100%;">
+              <div style="font-family: var(--font-sans); font-size: 26px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.04em;">
+                Heru Joko P. Utomo
+              </div>
+              <div style="margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--accent-purple);">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-purple);"></span> BPN Dev Community Speaker
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact & Follow-up Cards (Right) -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- Top Row: LinkedIn and WhatsApp side-by-side -->
+            <div style="flex: 1; display: flex; gap: 20px;">
+
+              <!-- LinkedIn Card -->
+              <div class="card highlight-blue" style="flex: 1; align-items: center; text-align: center; justify-content: space-between; padding: 24px 20px;">
+                <div style="width: 100%;">
+                  <div class="card-header-label" style="color: var(--accent-blue); justify-content: center; margin-bottom: 8px;">
+                    <span class="dot" style="background: var(--accent-blue);"></span>
+                    LinkedIn // Profile &amp; Network
+                  </div>
+                  <h3 style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Connect on LinkedIn</h3>
+                  <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+                    Architecture discussions &amp; engineering leadership
+                  </p>
+                </div>
+
+                <div style="background: var(--accent-blue-dim); border: 2px solid var(--accent-blue-border); padding: 12px; border-radius: 16px; margin: 12px 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <img src="./qr-linkedin.svg" alt="LinkedIn QR Code" style="width: 200px; height: 200px; background: #ffffff; padding: 8px; border-radius: 10px; border: 1px solid var(--accent-blue-border); display: block;" />
+                </div>
+
+                <div style="width: 100%;">
+                  <a href="https://www.linkedin.com/in/heruujoko/?locale=in" target="_blank" rel="noopener noreferrer" style="font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--accent-blue); text-decoration: none; padding: 8px 16px; background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); border-radius: 8px; display: inline-block;">
+                    linkedin.com/in/heruujoko &nearr;
+                  </a>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-dim); margin-top: 6px;">Scan QR with phone or click link</div>
+                </div>
+              </div>
+
+              <!-- WhatsApp Card -->
+              <div class="card highlight-green" style="flex: 1; align-items: center; text-align: center; justify-content: space-between; padding: 24px 20px;">
+                <div style="width: 100%;">
+                  <div class="card-header-label" style="color: var(--accent-green); justify-content: center; margin-bottom: 8px;">
+                    <span class="dot" style="background: var(--accent-green);"></span>
+                    WhatsApp // Direct Message
+                  </div>
+                  <h3 style="font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Direct WhatsApp</h3>
+                  <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+                    Questions on demo scenarios, slides, or collaboration
+                  </p>
+                </div>
+
+                <div style="background: var(--accent-green-dim); border: 2px solid var(--accent-green-border); padding: 12px; border-radius: 16px; margin: 12px 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <img src="./qr-whatsapp.svg" alt="WhatsApp QR Code" style="width: 200px; height: 200px; background: #ffffff; padding: 8px; border-radius: 10px; border: 1px solid var(--accent-green-border); display: block;" />
+                </div>
+
+                <div style="width: 100%;">
+                  <a href="https://wa.me/628115969792" target="_blank" rel="noopener noreferrer" style="font-family: var(--font-mono); font-size: 15px; font-weight: 800; color: #15803d; text-decoration: none; padding: 8px 16px; background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); border-radius: 8px; display: inline-block;">
+                    +62 811-596-9792 &nearr;
+                  </a>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-dim); margin-top: 6px;">Scan QR to start chat immediately</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Bottom Row: Repo & Code Examples Card -->
+            <div class="card highlight-purple" style="padding: 18px 24px; flex-direction: row; align-items: center; justify-content: space-between; gap: 24px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: var(--accent-purple-dim); border: 1px solid var(--accent-purple-border); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: var(--accent-purple);">
+                  &starf;
+                </div>
+                <div>
+                  <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--accent-purple); letter-spacing: 0.08em;">Open Source Demo Scenarios &amp; Code Repository</div>
+                  <div style="font-size: 16px; font-weight: 800; color: var(--text-main); margin-top: 2px;">
+                    github.com/heruujoko/bpn-dev-ds-episodes
+                  </div>
+                </div>
+              </div>
+              <a href="https://github.com/heruujoko/bpn-dev-ds-episodes" target="_blank" rel="noopener noreferrer" style="padding: 12px 22px; border-radius: 8px; background: var(--text-main); color: #ffffff; font-family: var(--font-sans); font-size: 13px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">
+                View Repository &nearr;
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Slide 14: Q&amp;A and Contact Follow-up</strong></p>
+          <p>"Thank you everyone for having me at BPN Dev! The slides and all code scenarios from today are open-source on GitHub."</p>
+          <div class="notes-cue">Display QR codes so attendees can scan and connect directly.</div>
+          <p>Open the floor for questions from the audience.</p>
         </div>
       </section>
 

@@ -1,0 +1,3579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Know What Your AI Is Building — System Design Episodes</title>
+  <style>
+    /* Flat white and black, with purple, blue, green, yellow and coral accents. */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @font-face {
+      font-family: "Inter";
+      src: url("./Inter.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+    }
+
+    :root {
+      --bg-page: #26272d;
+      --bg-stage: #ffffff;
+      --bg-card: #ffffff;
+      --bg-subtle: #ffffff;
+      --border-card: #dedede;
+      --border-card-hover: #b8b8b8;
+
+      --text-main: #080808;
+      --text-body: #222222;
+      --text-muted: #555555;
+      --text-dim: #777777;
+
+      --accent-coral: #ff5960;
+      --accent-coral-dim: #fff1f1;
+      --accent-coral-border: #ffb1b5;
+
+      --accent-blue: #1c83c3;
+      --accent-blue-dim: #edf7fd;
+      --accent-blue-border: #a8d2e8;
+
+      --accent-green: #8cc927;
+      --accent-green-dim: #f5fae9;
+      --accent-green-border: #cde59b;
+
+      --accent-amber: #ffca3d;
+      --accent-amber-dim: #fff9e7;
+      --accent-amber-border: #ffe49c;
+
+      --accent-purple: #6a4b91;
+      --accent-purple-dim: #f3eef7;
+      --accent-purple-border: #cbb8dd;
+
+      --shadow-sm: none;
+      --shadow-card: none;
+      --shadow-lg: none;
+
+      --font-mono: "Inter", Arial, sans-serif;
+      --font-sans: "Inter", Arial, sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Stage & 16:9 Viewport */
+    #stage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: center center;
+      background: var(--bg-stage);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #1a1a1a;
+    }
+
+    #stage::before {
+      display: none;
+    }
+
+    /* Top Navigation & Progress Bar */
+    #progress-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: #eaeaea;
+      z-index: 50;
+    }
+
+    #progress-fill {
+      height: 100%;
+      width: 7.7%;
+      background: var(--accent-coral);
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    header {
+      height: 76px;
+      padding: 0 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      border-bottom: 2px solid var(--text-main);
+      background: #ffffff;
+    }
+
+    .badge-episode {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-main);
+      background: #ffffff;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 2px solid var(--text-main);
+      font-family: var(--font-sans);
+    }
+
+    .slide-counter {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    .slide-counter span.current {
+      color: var(--text-main);
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    /* -------------------------------------------------------------
+       Slide Container & Transitions
+       ------------------------------------------------------------- */
+    #slides-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      z-index: 10;
+      background: #ffffff;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 44px 64px 48px 64px;
+      display: none;
+      flex-direction: column;
+      background: var(--bg-stage);
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    /* Typography */
+    .slide-header {
+      margin-bottom: 28px;
+    }
+
+    .slide-title {
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .slide-title .title-accent {
+      background: none;
+      -webkit-background-clip: unset;
+      -webkit-text-fill-color: initial;
+      color: var(--text-main);
+      border-bottom: 4px solid var(--accent-coral);
+      padding-bottom: 2px;
+    }
+
+    .slide-subtitle {
+      font-size: 21px;
+      line-height: 1.45;
+      color: var(--text-body);
+      max-width: 1400px;
+      font-weight: 500;
+    }
+
+    .slide-content {
+      flex: 1;
+      display: flex;
+      gap: 32px;
+      min-height: 0;
+    }
+
+    /* -------------------------------------------------------------
+       Clean Metric Cards
+       ------------------------------------------------------------- */
+    .card {
+      background: var(--bg-card);
+      border: 2px solid var(--border-card);
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .card.highlight-coral {
+      border-color: var(--accent-coral);
+      background: #ffffff;
+    }
+
+    .card.highlight-blue {
+      border-color: var(--accent-blue);
+      background: #ffffff;
+    }
+
+    .card.highlight-green {
+      border-color: var(--accent-green);
+      background: #ffffff;
+    }
+
+    .card.highlight-amber {
+      border-color: var(--accent-amber);
+      background: #ffffff;
+    }
+
+    .card-header-label {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-main);
+    }
+
+    .card-header-label .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Rounded Metric Badges */
+    .metric-badge {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 10px 18px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid var(--border-card);
+      font-family: var(--font-mono);
+      box-shadow: var(--shadow-sm);
+    }
+    .metric-badge .val {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .metric-badge .unit {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Metric Tiles Row */
+    .metric-tile {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .metric-tile .label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .metric-tile .number {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+    }
+
+    /* Step Rows */
+    .step-box {
+      background: #ffffff;
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 15px;
+      color: var(--text-body);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step-box.bad {
+      border-color: var(--accent-coral-border);
+      background: var(--accent-coral-dim);
+      color: #9a3412;
+    }
+
+    .step-box.good {
+      border-color: var(--accent-green-border);
+      background: var(--accent-green-dim);
+      color: #166534;
+    }
+
+    .step-box.warn {
+      border-color: var(--accent-amber-border);
+      background: var(--accent-amber-dim);
+      color: #92400e;
+    }
+
+    /* Table styles */
+    .comp-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+    .comp-table th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 6px 16px;
+      letter-spacing: 0.08em;
+    }
+    .comp-table td {
+      background: var(--bg-subtle);
+      padding: 16px;
+      font-size: 16px;
+      border-top: 1px solid var(--border-card);
+      border-bottom: 1px solid var(--border-card);
+      color: var(--text-body);
+    }
+    .comp-table tr td:first-child {
+      border-left: 1px solid var(--border-card);
+      border-radius: 10px 0 0 10px;
+      font-weight: 700;
+    }
+    .comp-table tr td:last-child {
+      border-right: 1px solid var(--border-card);
+      border-radius: 0 10px 10px 0;
+    }
+
+    /* -------------------------------------------------------------
+       Footer & Bottom Bar
+       ------------------------------------------------------------- */
+    footer {
+      height: 56px;
+      padding: 0 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-card);
+      background: #ffffff;
+      z-index: 20;
+    }
+
+    .key-hints {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .key-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: #f1f5f9;
+      border-radius: 6px;
+      color: var(--text-main);
+      border: 1px solid #cbd5e1;
+      font-weight: 700;
+    }
+
+    /* -------------------------------------------------------------
+       Speaker Notes Drawer (Toggled with 'S' key or button)
+       ------------------------------------------------------------- */
+    #notes-panel {
+      position: absolute;
+      bottom: 56px;
+      right: 48px;
+      width: 580px;
+      max-height: 480px;
+      background: #ffffff;
+      border: 1px solid var(--accent-blue-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #notes-panel.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .notes-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-subtle);
+      border-radius: 16px 16px 0 0;
+    }
+
+    .notes-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notes-close-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .notes-close-btn:hover { color: var(--text-main); }
+
+    .notes-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-body);
+    }
+
+    .notes-cue {
+      display: block;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-left: 4px solid var(--accent-amber);
+      background: var(--accent-amber-dim);
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: #78350f;
+    }
+
+    .notes-code-cue {
+      display: block;
+      margin-top: 8px;
+      padding: 8px 14px;
+      border-left: 4px solid var(--accent-green);
+      background: var(--accent-green-dim);
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: #14532d;
+      font-weight: 600;
+    }
+
+    /* -------------------------------------------------------------
+       Slide 1: Hero
+       ------------------------------------------------------------- */
+    .hero-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      height: 100%;
+      position: relative;
+    }
+
+    .hero-pre {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-main);
+      margin-bottom: 24px;
+      font-family: var(--font-sans);
+      background: #ffffff;
+      padding: 6px 18px;
+      border-radius: 9999px;
+      border: 2px solid var(--text-main);
+    }
+
+    .hero-title {
+      font-size: 88px;
+      font-weight: 900;
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+      max-width: 1400px;
+      color: var(--text-main);
+      text-transform: uppercase;
+    }
+
+    .hero-title span.highlight {
+      background: none;
+      -webkit-background-clip: unset;
+      -webkit-text-fill-color: initial;
+      color: var(--text-main);
+      border-bottom: 6px solid var(--accent-coral);
+      padding-bottom: 4px;
+    }
+
+    .hero-subtitle {
+      font-size: 28px;
+      color: var(--text-body);
+      font-weight: 500;
+      max-width: 1050px;
+      line-height: 1.4;
+      margin-bottom: 44px;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 20px;
+      z-index: 5;
+    }
+
+    .hero-badge-item {
+      padding: 14px 28px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .palette-circles-bottom {
+      position: absolute;
+      bottom: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 180px;
+      pointer-events: none;
+      z-index: 1;
+      overflow: visible;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Stage: 16:9 1920x1080 Viewport scaled dynamically -->
+  <div id="stage">
+
+    <!-- Top Progress Bar -->
+    <div id="progress-track">
+      <div id="progress-fill"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header>
+      <div class="badge-episode" id="header-tag">EPISODE 00 // INTRO</div>
+      <div class="slide-counter">
+        <span class="current" id="counter-current">01</span> / <span id="counter-total">13</span>
+      </div>
+    </header>
+
+    <!-- Slides Viewport -->
+    <div id="slides-viewport">
+
+      <!-- ===================================================================
+           SLIDE 1: Title & Hook
+           =================================================================== -->
+      <section class="slide active" data-ep="INTRO // ARCHITECTURE" data-index="1">
+        <div class="hero-container">
+          <div class="hero-pre">BPN DEV // DESIGN SYSTEM EPISODES</div>
+          <h1 class="hero-title">
+            Know What Your <span class="highlight">AI Is Building</span>
+          </h1>
+          <p class="hero-subtitle">
+            AI writes the code in seconds. <strong style="color: var(--text-main); font-weight: 800;">You choose the architecture.</strong>
+          </p>
+          <div class="hero-badges">
+            <div class="hero-badge-item" style="border-color: var(--text-main);">
+              <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--accent-purple);"></span> 01. Cache
+            </div>
+            <div class="hero-badge-item" style="border-color: var(--text-main);">
+              <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--accent-blue);"></span> 02. Rate Limit
+            </div>
+            <div class="hero-badge-item" style="border-color: var(--text-main);">
+              <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--accent-green);"></span> 03. Load Balancing
+            </div>
+            <div class="hero-badge-item" style="border-color: var(--text-main);">
+              <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--accent-coral);"></span> 04. Circuit Breaker
+            </div>
+          </div>
+          <!-- Decorative palette circles inspired by reference -->
+          <svg class="palette-circles-bottom" viewBox="0 0 1000 180" fill="none">
+            <circle cx="200" cy="180" r="160" fill="var(--accent-purple)" />
+            <circle cx="350" cy="180" r="160" fill="var(--accent-blue)" />
+            <circle cx="500" cy="180" r="160" fill="var(--accent-green)" />
+            <circle cx="650" cy="180" r="160" fill="var(--accent-amber)" />
+            <circle cx="800" cy="180" r="160" fill="var(--accent-coral)" />
+          </svg>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Opening Hook (2 min):</strong></p>
+          <p>"The rise of AI coding has outsourced typing code. You prompt, and 200 lines of Go or TypeScript appear. But AI generates code based on patterns, not your system constraints."</p>
+          <div class="notes-cue">Key thesis: Without human architectural judgment, AI coding results in unneeded complexity, security holes, and outages.</div>
+          <p>Today we walk through 4 bite-size episodes from our live demo repo: Cache, Rate Limiting, Load Balancing, and Circuit Breakers.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 2: Episode 1 (Cache) - The Happy Path vs The Cost
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="2">
+        <div class="slide-header">
+          <h2 class="slide-title">The Happy Path: <span class="title-accent">Avoiding Repeated Work</span></h2>
+          <p class="slide-subtitle">Cache bypasses the slow database disk/network hop. But cheaper per request doesn't mean free.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Without Cache -->
+          <div class="card highlight-coral" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-coral);"></span>
+                Without Cache (3 Repeat Queries)
+              </div>
+              <div id="s2-left-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--accent-coral); background: var(--accent-coral-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-coral-border);">
+                Req #1: Fetching DB
+              </div>
+            </div>
+
+            <!-- SVG Motion Canvas (Without Cache) -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 6px 10px; margin-bottom: 12px;">
+              <svg id="s2-left-svg" viewBox="0 0 540 90" width="100%" height="90" style="overflow: visible;">
+                <path d="M 85 45 L 210 45" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="4 4" />
+                <path d="M 310 45 L 435 45" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="4 4" />
+                
+                <!-- Client Node -->
+                <rect x="15" y="18" width="70" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="50" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-main)">Client</text>
+                <text x="50" y="57" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Browser</text>
+
+                <!-- App Server Node -->
+                <rect x="210" y="18" width="100" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="260" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-main)">App Server</text>
+                <text x="260" y="57" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Repeats Query</text>
+
+                <!-- Database Node -->
+                <rect x="435" y="18" width="85" height="54" rx="8" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" />
+                <text x="477" y="40" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--accent-coral)">Database</text>
+                <text x="477" y="53" text-anchor="middle" font-family="var(--font-mono)" font-size="9" font-weight="700" fill="var(--accent-coral)">Disk I/O</text>
+                <text x="477" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--text-dim)">500ms delay</text>
+
+                <g id="s2-left-particles"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 8px;">
+              <div id="s2-left-step-1" class="step-box bad" style="transition: all 0.2s;">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #1</span>
+                <span>Client &rarr; App &rarr; Database (Disk I/O)</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div id="s2-left-step-2" class="step-box bad" style="transition: all 0.2s;">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #2</span>
+                <span>Client &rarr; App &rarr; Database (Repeat query)</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div id="s2-left-step-3" class="step-box bad" style="transition: all 0.2s;">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #3</span>
+                <span>Client &rarr; App &rarr; Database (Repeat query)</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-coral);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-card);">
+                <span style="color: var(--text-muted); font-weight: 600;">Total Latency:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-coral);">1,500</span><span class="unit">ms</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: With Cache -->
+          <div class="card highlight-green" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-green);"></span>
+                With Cache (1 Miss, 2 Hits)
+              </div>
+              <div id="s2-right-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-green-border);">
+                Req #1: Cache MISS
+              </div>
+            </div>
+
+            <!-- SVG Motion Canvas (With Cache) -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 6px 10px; margin-bottom: 12px;">
+              <svg id="s2-right-svg" viewBox="0 0 540 90" width="100%" height="90" style="overflow: visible;">
+                <path d="M 85 45 L 195 45" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="4 4" />
+                <path id="s2-db-track" d="M 325 45 L 435 45" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-dasharray="4 4" />
+                
+                <!-- Client Node -->
+                <rect x="15" y="18" width="70" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="50" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-main)">Client</text>
+                <text x="50" y="57" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Browser</text>
+
+                <!-- Cache (RAM) Node -->
+                <rect id="s2-cache-box" x="195" y="15" width="130" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="260" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="800" fill="var(--text-main)">CACHE (RAM)</text>
+                <text id="s2-cache-sub" x="260" y="53" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--text-dim)">Cold / Empty</text>
+                <text x="260" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--accent-green)">&lt;1ms instant return</text>
+
+                <!-- Database Node -->
+                <rect id="s2-db-box" x="435" y="18" width="85" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="477" y="40" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--text-muted)">Database</text>
+                <text x="477" y="53" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">Disk I/O</text>
+                <text x="477" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="8" fill="var(--text-dim)">500ms delay</text>
+
+                <g id="s2-right-particles"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 8px;">
+              <div id="s2-right-step-1" class="step-box warn" style="transition: all 0.2s;">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #1</span>
+                <span>Cache Miss &rarr; Fetch DB &rarr; Store in RAM</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-amber);">500</span><span class="unit">ms</span></span>
+              </div>
+              <div id="s2-right-step-2" class="step-box good" style="transition: all 0.2s;">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #2</span>
+                <span>Cache Hit &rarr; Returned directly from RAM</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-green);">&lt;1</span><span class="unit">ms</span></span>
+              </div>
+              <div id="s2-right-step-3" class="step-box good" style="transition: all 0.2s;">
+                <span style="font-family: var(--font-mono); font-weight: 800;">Req #3</span>
+                <span>Cache Hit &rarr; Returned directly from RAM</span>
+                <span class="metric-badge" style="margin-left: auto;"><span class="val" style="color: var(--accent-green);">&lt;1</span><span class="unit">ms</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-card);">
+                <span style="color: var(--text-muted); font-weight: 600;">Total Latency:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-green);">~500</span><span class="unit">ms (3x faster)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 1: Happy Path (Console Demo 1):</strong></p>
+          <p>"Your app feels sluggish. You add cache. It feels instant. Total time drops from 1500ms to 500ms."</p>
+          <div class="notes-code-cue">CUE: Run  -> Option 1 in </div>
+          <p>"Cache is simply avoiding repeated work. Identify expensive operations that return the same result."</p>
+        </div>
+      </section>
+
+      <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="3">
+        <div class="slide-header">
+          <h2 class="slide-title">What <span style="color: var(--accent-coral);">NOT</span> to Cache: Anti-Patterns</h2>
+          <p class="slide-subtitle">AI defaults to caching whatever was slow. Stale reads can become severe security &amp; inventory bugs.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Card 1: Permissions Bug -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              1. Security: Cached Permissions
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="font-size: 15px; color: var(--text-body); line-height: 1.5;">
+                <p style="margin-bottom: 12px;">TTL: <strong>1 hour</strong>. Admin revokes employee "write" access in DB at 10:05.</p>
+                <div class="step-box bad" style="margin-bottom: 10px;">
+                  <span>10:00: Cached <code>["read", "write"]</code></span>
+                </div>
+                <div class="step-box bad" style="margin-bottom: 10px;">
+                  <span>10:05: DB revokes access <code>["read"]</code></span>
+                </div>
+                <div class="step-box bad">
+                  <span>10:50: Cache returns <code>["write"]</code> &rarr; <strong>Breach!</strong></span>
+                </div>
+              </div>
+              <div style="background: var(--accent-coral-dim); border: 1px solid var(--accent-coral-border); padding: 12px; border-radius: 8px; font-size: 13px; color: #9a3412;">
+                <strong>Rule:</strong> Don't cache security-critical data without explicit push invalidation.
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Inventory Bug -->
+          <div class="card highlight-amber" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              2. Consistency: Real-Time Stock
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="font-size: 15px; color: var(--text-body); line-height: 1.5;">
+                <p style="margin-bottom: 12px;">Product has <strong>1 item left</strong>. Cached with 10s TTL.</p>
+                <div class="step-box warn" style="margin-bottom: 10px;">
+                  <span>Alice buys item 1 &rarr; Stock becomes 0</span>
+                </div>
+                <div class="step-box warn" style="margin-bottom: 10px;">
+                  <span>Bob checks &rarr; Cache still returns <strong>1 in stock</strong></span>
+                </div>
+                <div class="step-box bad">
+                  <span>Bob checkout succeeds &rarr; <strong>Oversold (-1)</strong></span>
+                </div>
+              </div>
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 12px; border-radius: 8px; font-size: 13px; color: #78350f;">
+                <strong>Rule:</strong> Never cache data that changes frequently and carries business liability when stale.
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: One-Time Reads -->
+          <div class="card" style="flex: 1;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--text-dim);"></span>
+              3. Waste: One-Time Reads
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="font-size: 15px; color: var(--text-body); line-height: 1.5;">
+                <p style="margin-bottom: 12px;">Caching <code>last_login_at</code> or password reset tokens in RAM.</p>
+                <div class="step-box" style="margin-bottom: 10px;">
+                  <span>Stored for 1 Hour: <code>user:123:token</code></span>
+                </div>
+                <div class="step-box" style="margin-bottom: 10px;">
+                  <span>Read Count = <strong>1</strong> (never read again)</span>
+                </div>
+                <div class="step-box bad">
+                  <span>Result: <strong>Memory pollution &amp; evicts hot keys</strong></span>
+                </div>
+              </div>
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-muted);">
+                <strong>Rule:</strong> Cache only data expected to be read multiple times.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 2: What NOT to Cache:</strong></p>
+          <p>"AI loves to wrap functions with `@cached`. But caching permissions means revoked users still hold access for 59 minutes."</p>
+          <div class="notes-cue">"Caching inventory count when there is 1 item left means overselling to negative inventory."</div>
+          <p>Ask the audience: Does this data change? Does stale data create legal or security liability? If yes, don't blindly cache.</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 4: Episode 1 (Cache) - Scaling Out: Map vs Shared Redis
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 1 // CACHE" data-index="4">
+        <div class="slide-header">
+          <h2 class="slide-title">Scaling Out: <span class="title-accent">Local RAM vs. Shared Redis</span></h2>
+          <p class="slide-subtitle">When you add a second server, local memory creates stale drift. Shared Redis fixes drift at the cost of a network hop.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Architecture Left: Per-Server Map -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              In-Memory Map: Stale Alice Bug
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 18px; font-family: var(--font-mono); font-size: 14px;">
+                <div style="color: var(--text-muted); margin-bottom: 8px;">// Step 1: Read via Server A</div>
+                <div>Server A caches: <span style="color: var(--accent-blue); font-weight: 700;">"Alice"</span></div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 2: Update Name via Server B</div>
+                <div>Server B updates DB &rarr; <span style="color: var(--accent-green); font-weight: 700;">"Alicia"</span></div>
+                <div>Server B invalidates its own map</div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 3: Read via Server A again</div>
+                <div style="color: var(--accent-coral); font-weight: 800;">Server A returns cached: "Alice" ❌ STALE!</div>
+              </div>
+              <div style="font-size: 14px; color: #9a3412; background: var(--accent-coral-dim); border-left: 4px solid var(--accent-coral); padding: 12px; border-radius: 0 8px 8px 0;">
+                Server B cannot purge Server A's process RAM heap.
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture Right: Shared Redis -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              Shared Redis: Consistent Fresh Reads
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 18px; font-family: var(--font-mono); font-size: 14px;">
+                <div style="color: var(--text-muted); margin-bottom: 8px;">// Step 1: Read via Server A</div>
+                <div>Loads DB &rarr; stores in <span style="color: var(--accent-blue); font-weight: 700;">Redis</span>: "Alice"</div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 2: Update Name via Server B</div>
+                <div>Server B updates DB &rarr; <span style="color: var(--accent-green); font-weight: 700;">"Alicia"</span></div>
+                <div>Server B deletes key in <span style="color: var(--accent-blue); font-weight: 700;">Redis</span></div>
+                <div style="color: var(--text-muted); margin: 14px 0 8px 0;">// Step 3: Read via Server A again</div>
+                <div style="color: var(--accent-green); font-weight: 800;">Server A misses Redis &rarr; reloads "Alicia" ✓ FRESH!</div>
+              </div>
+              <div style="font-size: 14px; color: var(--text-muted); background: var(--accent-blue-dim); border-left: 4px solid var(--accent-blue); padding: 12px; border-radius: 0 8px 8px 0;">
+                Trade-off: Network hop (~1ms vs 0ms) + new infrastructure dependency.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 4: The Plot Twist — Multiple Servers:</strong></p>
+          <p>"Ask the audience: Everything worked great with Go's `sync.Map`. Now you launch Server 2 behind AWS ALB. What happens?"</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 4 in `episodes/cache`</div>
+          <p>"Server B cannot touch Server A's heap memory. Alice is stuck as Alice on server A. Shared state requires shared storage."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 5: Episode 2 (Rate Limit) - The Unprotected Resource
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="5">
+        <div class="slide-header">
+          <h2 class="slide-title">The Unprotected Resource: <span style="color: var(--accent-coral);">Noisy Neighbor Starvation</span></h2>
+          <p class="slide-subtitle">Cache made requests cheaper. But cheaper is not free. Without limits, whoever queries fastest takes everything.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: The Bot Flood & Starvation Animation -->
+          <div class="card" style="flex: 1.25; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                Shared Capacity: 5 Concurrent Workers
+              </div>
+              <div id="s5-status-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-coral); background: var(--accent-coral-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-coral-border); transition: all 0.2s;">
+                Pool Status: Bot Flooding (5/5 Workers Busy)
+              </div>
+            </div>
+
+            <!-- SVG Worker Pool Animation Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px;">
+              <svg id="s5-svg" viewBox="0 0 860 160" width="100%" height="160" style="overflow: visible;">
+                <!-- Tracks -->
+                <path d="M 120 46 L 270 46" fill="none" stroke="#fca5a5" stroke-width="3" stroke-dasharray="5 5" />
+                <path d="M 120 114 L 270 114" fill="none" stroke="#93c5fd" stroke-width="3" stroke-dasharray="5 5" />
+
+                <!-- Bot Client Node -->
+                <rect x="25" y="20" width="95" height="52" rx="10" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" filter="drop-shadow(0 2px 6px rgba(234,88,12,0.15))" />
+                <text x="72" y="43" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">🤖 BOT</text>
+                <text x="72" y="60" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--accent-coral)">50 req/s</text>
+
+                <!-- Alice Client Node -->
+                <rect x="25" y="88" width="95" height="52" rx="10" fill="var(--accent-blue-dim)" stroke="var(--accent-blue)" stroke-width="2" filter="drop-shadow(0 2px 6px rgba(37,99,235,0.15))" />
+                <text x="72" y="111" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-blue)">👤 ALICE</text>
+                <text x="72" y="128" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--accent-blue)">3 reqs</text>
+
+                <!-- Server Worker Pool Container -->
+                <rect x="270" y="12" width="565" height="136" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="552" y="30" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="800" fill="var(--text-muted)">SHARED BACKEND WORKER POOL (MAX 5 CONCURRENT WORKERS)</text>
+
+                <!-- 5 Worker Slots -->
+                <!-- Slot 1 -->
+                <g id="s5-slot-1" transform="translate(290, 42)">
+                  <rect id="s5-box-1" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W1</text>
+                  <text id="s5-label-1" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 2 -->
+                <g id="s5-slot-2" transform="translate(398, 42)">
+                  <rect id="s5-box-2" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W2</text>
+                  <text id="s5-label-2" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 3 -->
+                <g id="s5-slot-3" transform="translate(506, 42)">
+                  <rect id="s5-box-3" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W3</text>
+                  <text id="s5-label-3" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 4 -->
+                <g id="s5-slot-4" transform="translate(614, 42)">
+                  <rect id="s5-box-4" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W4</text>
+                  <text id="s5-label-4" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Slot 5 -->
+                <g id="s5-slot-5" transform="translate(722, 42)">
+                  <rect id="s5-box-5" width="95" height="92" rx="8" fill="var(--accent-coral-dim)" stroke="var(--accent-coral)" stroke-width="2" />
+                  <text x="47" y="28" text-anchor="middle" font-family="var(--font-sans)" font-size="13" font-weight="900" fill="var(--accent-coral)">W5</text>
+                  <text id="s5-label-5" x="47" y="58" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">🤖 BOT</text>
+                  <text x="47" y="76" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">100% Busy</text>
+                </g>
+
+                <!-- Particle Layer -->
+                <g id="s5-particles-layer"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 10px;">
+              <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                  <span style="color: var(--accent-coral); font-weight: 800;">Bot (Flood Loop: 50 reqs)</span>
+                  <span id="s5-cap-text" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">Occupies 94% Capacity</span>
+                </div>
+                <div style="height: 18px; background: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
+                  <div id="s5-bar-bot" style="width: 94%; background: var(--accent-coral); transition: width 0.4s;"></div>
+                  <div id="s5-bar-alice" style="width: 6%; background: var(--accent-green); transition: width 0.4s;"></div>
+                </div>
+              </div>
+
+              <div id="s5-step-bot" class="step-box bad" style="transition: all 0.2s;">
+                <span style="font-size: 20px;">🤖</span>
+                <div style="flex: 1; font-size: 13px;">
+                  <strong>Bot Greedily Consumes Worker Pool</strong><br>
+                  <span style="color: var(--text-muted);">50 rapid-fire requests queue up database connections and CPU</span>
+                </div>
+              </div>
+
+              <div id="s5-step-alice" class="step-box bad" style="border-left: 4px solid var(--accent-coral); transition: all 0.2s;">
+                <span style="font-size: 20px;">👤</span>
+                <div style="flex: 1; font-size: 13px;">
+                  <strong>Alice (Normal User: 3 requests)</strong><br>
+                  <span id="s5-alice-status" style="color: var(--text-body);">Req #1 waited 2.1s &bull; Req #2 waited 2.3s &bull; Req #3: <strong style="color: #ffffff; background: var(--accent-coral); padding: 2px 6px; border-radius: 4px;">TIMEOUT (504)</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Principle -->
+          <div class="card highlight-amber" style="flex: 0.85; padding: 22px 24px;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              The Core Problem
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 18px; line-height: 1.5; color: var(--text-main); font-weight: 700;">
+                Every backend has a finite budget:
+              </p>
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; font-family: var(--font-mono); font-size: 14px;">
+                <li style="display: flex; gap: 10px; align-items: center;">
+                  <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> CPU Cores &amp; Thread Pool
+                </li>
+                <li style="display: flex; gap: 10px; align-items: center;">
+                  <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> Database Connection Pool (Max 20)
+                </li>
+                <li style="display: flex; gap: 10px; align-items: center;">
+                  <span style="color: var(--accent-amber); font-weight: 800;">&gt;</span> Downstream API Quotas ($$$)
+                </li>
+              </ul>
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 14px; border-radius: 10px; font-size: 13px; color: #78350f; line-height: 1.5;">
+                <strong>Key Takeaway:</strong> Without a rate limit, your budget belongs to the client with the tightest loop.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Episode 2 Opening &amp; Scene 1:</strong></p>
+          <p>"Cache made every request fast. But what happens when an AI crawler loops or a bot floods 10k req/s?"</p>
+          <div class="notes-code-cue">CUE: Run  -&gt; Option 1 in </div>
+          <p>"Notice Alice waiting 2.3 seconds before timing out. The server didn't crash; it just served the loudest client first."</p>
+        </div>
+      </section>
+
+      <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="6">
+        <div class="slide-header">
+          <h2 class="slide-title">Algorithm Mechanics: <span class="title-accent">Fixed Window vs Token Bucket</span></h2>
+          <p class="slide-subtitle">Fixed Window allows a 2x burst across window boundaries. Token Bucket enforces a smooth average while allowing bursts.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Fixed Window Boundary Burst Animation -->
+          <div class="card highlight-amber" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-amber);">
+                <span class="dot" style="background: var(--accent-amber);"></span>
+                Fixed Window: Boundary Burst (2x Traffic)
+              </div>
+              <div id="s6-left-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-amber); background: var(--accent-amber-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-amber-border); transition: all 0.2s;">
+                Timeline: 0.0s (Window 1)
+              </div>
+            </div>
+
+            <!-- SVG Timeline Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
+              <svg id="s6-left-svg" viewBox="0 0 540 150" width="100%" height="150" style="overflow: visible;">
+                <!-- Window 1 Box -->
+                <rect id="s6-box-w1" x="20" y="20" width="235" height="95" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="137" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="var(--text-main)">WINDOW 1 (0.0s &ndash; 1.0s)</text>
+                <text id="s6-count-w1" x="137" y="75" text-anchor="middle" font-family="var(--font-mono)" font-size="24" font-weight="900" fill="var(--accent-amber)">0 / 5</text>
+                <text x="137" y="98" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--text-dim)">Limit: 5 reqs</text>
+
+                <!-- Window 2 Box -->
+                <rect id="s6-box-w2" x="285" y="20" width="235" height="95" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                <text x="402" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="12" font-weight="800" fill="var(--text-main)">WINDOW 2 (1.0s &ndash; 2.0s)</text>
+                <text id="s6-count-w2" x="402" y="75" text-anchor="middle" font-family="var(--font-mono)" font-size="24" font-weight="900" fill="var(--accent-amber)">0 / 5</text>
+                <text x="402" y="98" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--text-dim)">Limit: 5 reqs</text>
+
+                <!-- Boundary Reset Line -->
+                <line x1="270" y1="10" x2="270" y2="125" stroke="var(--accent-coral)" stroke-width="3" stroke-dasharray="6 6" />
+                <rect x="220" y="128" width="100" height="20" rx="6" fill="var(--accent-coral-dim)" stroke="var(--accent-coral-border)" stroke-width="1" />
+                <text x="270" y="142" text-anchor="middle" font-family="var(--font-mono)" font-size="9" font-weight="800" fill="var(--accent-coral)">RESET (1.0s)</text>
+
+                <!-- Moving Time Needle -->
+                <g id="s6-needle" transform="translate(20, 0)">
+                  <line x1="0" y1="15" x2="0" y2="125" stroke="#1c83c3" stroke-width="2.5" />
+                  <polygon points="-5,15 5,15 0,22" fill="#1c83c3" />
+                </g>
+
+                <!-- Particles -->
+                <g id="s6-left-particles"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="display: flex; justify-content: space-between; gap: 10px;">
+                <div id="s6-card-w1" style="flex: 1; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 10px 14px; border-radius: 8px; text-align: center; transition: all 0.2s;">
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber); font-weight: 700;">t = 0.9s (End of Window 1)</div>
+                  <div id="s6-burst-w1-text" style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
+                </div>
+                <div id="s6-card-w2" style="flex: 1; background: var(--accent-amber-dim); border: 1px dashed var(--accent-amber); padding: 10px 14px; border-radius: 8px; text-align: center; transition: all 0.2s;">
+                  <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber); font-weight: 700;">t = 1.1s (Start of Window 2)</div>
+                  <div id="s6-burst-w2-text" style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">5 Allowed</div>
+                </div>
+              </div>
+
+              <div id="s6-left-alert" style="background: var(--accent-coral-dim); border-left: 4px solid var(--accent-coral); padding: 12px 16px; font-size: 14px; color: #9a3412; border-radius: 4px 8px 8px 4px; margin-top: 10px; transition: all 0.2s;">
+                <strong>10 requests allowed in 0.2s!</strong> Double the stated 5/sec limit across the window reset boundary.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Token Bucket Smooth Drain Animation -->
+          <div class="card highlight-green" style="flex: 1; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-green);">
+                <span class="dot" style="background: var(--accent-green);"></span>
+                Token Bucket: Bursts with Constant Refill
+              </div>
+              <div id="s6-right-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-green-border); transition: all 0.2s;">
+                Tokens: 5 / 5 (Full Capacity)
+              </div>
+            </div>
+
+            <!-- SVG Token Bucket Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
+              <svg id="s6-right-svg" viewBox="0 0 540 150" width="100%" height="150" style="overflow: visible;">
+                <!-- Bucket Graphics -->
+                <path d="M 60 30 L 60 135 C 60 142, 68 145, 78 145 L 182 145 C 192 145, 200 142, 200 135 L 200 30" fill="var(--accent-green-dim)" stroke="var(--accent-green)" stroke-width="3" />
+                <line x1="50" y1="30" x2="210" y2="30" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 4" />
+                <text x="130" y="22" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--text-muted)">Max Capacity: 5 Tokens</text>
+
+                <!-- Token Bars inside Bucket (Bottom to Top) -->
+                <rect id="s6-tok-1" x="75" y="122" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-2" x="75" y="101" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-3" x="75" y="80" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-4" x="75" y="59" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+                <rect id="s6-tok-5" x="75" y="38" width="110" height="16" rx="4" fill="var(--accent-green)" transition="all 0.2s" />
+
+                <!-- Status Panel next to bucket -->
+                <rect x="235" y="20" width="285" height="125" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+                <text x="255" y="45" font-family="var(--font-sans)" font-size="12" font-weight="700" fill="var(--text-muted)">AVAILABLE TOKENS:</text>
+                <text id="s6-tb-tokens-val" x="495" y="50" text-anchor="end" font-family="var(--font-mono)" font-size="24" font-weight="900" fill="var(--accent-green)">5 / 5</text>
+
+                <text id="s6-tb-log-1" x="255" y="75" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--text-body)">&bull; Burst: 5 reqs allowed</text>
+                <text id="s6-tb-log-2" x="255" y="98" font-family="var(--font-mono)" font-size="11" font-weight="800" fill="var(--accent-coral)">&bull; 6th req: 429 Too Many Reqs</text>
+                <text id="s6-tb-log-3" x="255" y="121" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--accent-green)">&bull; Refill: +1 token/sec smooth</text>
+
+                <g id="s6-right-particles"></g>
+              </svg>
+            </div>
+
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="font-family: var(--font-mono); font-size: 13px; line-height: 1.8; color: var(--text-body);">
+                <div>&bull; Config: <strong>5 tokens capacity</strong>, refills <strong>1 token / sec</strong></div>
+                <div>&bull; Natural human bursts consume tokens instantly</div>
+                <div>&bull; Overflow is dropped immediately without boundary doubling</div>
+              </div>
+
+              <div style="background: var(--accent-green-dim); border-left: 4px solid var(--accent-green); padding: 12px 16px; font-size: 14px; color: #166534; border-radius: 4px 8px 8px 4px; margin-top: 10px;">
+                <strong>Real users are bursty.</strong> Token bucket accommodates natural burstiness without doubling the boundary quota.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 2 &amp; 3: Fixed Window vs Token Bucket:</strong></p>
+          <p>"Fixed window is simple to code with Redis INCR. But watch the boundary: 5 requests at 0.9s, reset at 1.0s, 5 requests at 1.1s."</p>
+          <div class="notes-cue">"That's 10 requests hitting your database in 200 milliseconds!"</div>
+          <p>Token bucket provides smooth refills and models human usage much better.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-ep="EPISODE 2 // RATE LIMIT" data-index="7">
+        <div class="slide-header">
+          <h2 class="slide-title">Scaling Out: <span class="title-accent">The Load Balancer Matrix</span></h2>
+          <p class="slide-subtitle">Local memory counters multiply your quota by N servers. Shared Redis guarantees your true limit.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: In-memory across 3 servers -->
+          <div class="card highlight-coral" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-coral);">
+              <span class="dot" style="background: var(--accent-coral);"></span>
+              3 Servers + Local In-Memory Counters
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 14px; color: var(--text-muted);">Specified Limit: <strong>5 req/window</strong> per client.</p>
+
+              <div style="display: flex; gap: 12px;">
+                <div class="metric-tile" style="flex: 1; text-align: center;">
+                  <div class="label">Server A</div>
+                  <div class="number" style="color: var(--accent-coral);">5 / 5</div>
+                  <div style="font-size: 12px; color: var(--accent-green); font-weight: 700;">Allowed ✓</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center;">
+                  <div class="label">Server B</div>
+                  <div class="number" style="color: var(--accent-coral);">5 / 5</div>
+                  <div style="font-size: 12px; color: var(--accent-green); font-weight: 700;">Allowed ✓</div>
+                </div>
+                <div class="metric-tile" style="flex: 1; text-align: center;">
+                  <div class="label">Server C</div>
+                  <div class="number" style="color: var(--accent-coral);">5 / 5</div>
+                  <div style="font-size: 12px; color: var(--accent-green); font-weight: 700;">Allowed ✓</div>
+                </div>
+              </div>
+
+              <div style="background: var(--accent-coral-dim); border: 1px solid var(--accent-coral-border); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #9a3412; font-size: 15px; font-weight: 700;">Total Traffic Passed to DB:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-coral);">15 / 5</span><span class="unit">(3x Leaked!)</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Shared Redis Counter -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              3 Servers + Shared Redis Counter
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 14px; color: var(--text-muted);">Atomic INCR on central key <code>ratelimit:client:&lt;window&gt;</code></p>
+
+              <div class="metric-tile" style="text-align: center; padding: 24px;">
+                <div class="label" style="color: var(--accent-blue);">Central Redis Key Counter</div>
+                <div class="number" style="color: var(--accent-blue); font-size: 42px; margin: 8px 0;">5 / 5 [CAP]</div>
+                <div style="font-size: 13px; color: var(--text-muted);">Next 10 requests rejected with HTTP 429 across all nodes</div>
+              </div>
+
+              <div style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); border-radius: 12px; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #166534; font-size: 15px; font-weight: 700;">Total Traffic Passed:</span>
+                <span class="metric-badge"><span class="val" style="color: var(--accent-green);">5 / 5</span><span class="unit">(Strictly Enforced)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 5: Scaling Out Matrix:</strong></p>
+          <p>"Notice how the two episodes connect! In Episode 1, local cache created stale reads. In Episode 2, local rate limiting leaks 15 requests instead of 5."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 5 & 6 in `episodes/rate-limit`</div>
+          <p>"Every time you say 'just add servers behind a load balancer', your stateful guarantees break unless moved to a shared tier."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 8: Episode 3 (Load Balancing) - Round-Robin
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 3 // LOAD BALANCING" data-index="8">
+        <div class="slide-header">
+          <h2 class="slide-title">Equal Distribution: <span class="title-accent">Round-Robin Mechanics</span></h2>
+          <p class="slide-subtitle">Opening the Load Balancer box: cyclic routing across identical instances. Equal requests &ne; equal work.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Diagram with Looped Dot Animation -->
+          <div class="card" style="flex: 1.35; padding: 22px 26px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="card-header-label" style="margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                Load Balancer Node: Cyclic Round-Robin Loop
+              </div>
+              <div id="s8-status-badge" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent-blue); background: var(--accent-blue-dim); padding: 5px 14px; border-radius: 999px; border: 1px solid var(--accent-blue-border);">
+                Routing: Req #1 &rarr; Node A
+              </div>
+            </div>
+
+            <!-- SVG Routing Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 14px; padding: 10px; margin-bottom: 12px; position: relative;">
+              <svg id="s8-svg" viewBox="0 0 880 300" width="100%" height="300" style="overflow: visible;">
+                <!-- Track lines -->
+                <path d="M 125 150 L 320 150" fill="none" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s8-track-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s8-track-b" d="M 440 150 L 620 150" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s8-track-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+
+                <!-- Active path glowing highlight tracks -->
+                <path id="s8-glow-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#a8d2e8" stroke-width="5" opacity="0.2" />
+                <path id="s8-glow-b" d="M 440 150 L 620 150" fill="none" stroke="#cde59b" stroke-width="5" opacity="0.2" />
+                <path id="s8-glow-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#cbb8dd" stroke-width="5" opacity="0.2" />
+
+                <!-- Client Node -->
+                <g transform="translate(15, 105)">
+                  <rect width="110" height="90" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="55" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#64748b" letter-spacing="0.05em">CLIENT</text>
+                  <text x="55" y="65" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">12 Reqs</text>
+                </g>
+
+                <!-- Load Balancer Center Node -->
+                <g transform="translate(320, 95)">
+                  <rect id="s8-lb-box" width="120" height="110" rx="18" fill="#edf7fd" stroke="#1c83c3" stroke-width="2.5" />
+                  <circle cx="60" cy="35" r="16" fill="#1c83c3" />
+                  <text x="60" y="41" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">⚖</text>
+                  <text x="60" y="72" text-anchor="middle" font-size="11" font-weight="800" fill="#080808" letter-spacing="0.05em">LOAD BALANCER</text>
+                  <text id="s8-lb-sub" x="60" y="92" text-anchor="middle" font-size="12" font-weight="800" fill="#1c83c3">&rarr; Node A</text>
+                </g>
+
+                <!-- Backend A -->
+                <g id="s8-backend-a" transform="translate(620, 10)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#a8d2e8" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#1c83c3" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#1c83c3" letter-spacing="0.05em">BACKEND A</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s8-count-a">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Backend B -->
+                <g id="s8-backend-b" transform="translate(620, 110)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#cde59b" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#8cc927" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#8cc927" letter-spacing="0.05em">BACKEND B</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s8-count-b">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Backend C -->
+                <g id="s8-backend-c" transform="translate(620, 210)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#cbb8dd" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#6a4b91" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#6a4b91" letter-spacing="0.05em">BACKEND C</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s8-count-c">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Flying Dots Layer -->
+                <g id="s8-particles-layer"></g>
+              </svg>
+            </div>
+
+            <!-- Cyclic assignment strip -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 12px 16px; font-family: var(--font-mono); font-size: 13px;">
+              <div style="color: var(--text-muted); margin-bottom: 8px; font-weight: 700; font-size: 12px;">// Cyclic Sequence: A &rarr; B &rarr; C (Looped 12 requests)</div>
+              <div id="s8-tokens-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <span class="s8-tok" data-i="1" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">1:A</span>
+                <span class="s8-tok" data-i="2" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">2:B</span>
+                <span class="s8-tok" data-i="3" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">3:C</span>
+                <span class="s8-tok" data-i="4" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">4:A</span>
+                <span class="s8-tok" data-i="5" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">5:B</span>
+                <span class="s8-tok" data-i="6" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">6:C</span>
+                <span class="s8-tok" data-i="7" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">7:A</span>
+                <span class="s8-tok" data-i="8" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">8:B</span>
+                <span class="s8-tok" data-i="9" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">9:C</span>
+                <span class="s8-tok" data-i="10" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">10:A</span>
+                <span class="s8-tok" data-i="11" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">11:B</span>
+                <span class="s8-tok" data-i="12" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">12:C</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: The Blindspot -->
+          <div class="card highlight-amber" style="flex: 0.8;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              The Blindspot
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 16px; color: var(--text-body); line-height: 1.6;">
+                Round-robin assumes every request costs the same and every backend performs identically.
+              </p>
+              <div class="step-box bad">
+                <span style="font-size: 14px;"><strong>Req #1:</strong> 1ms static JSON query</span>
+              </div>
+              <div class="step-box bad">
+                <span style="font-size: 14px;"><strong>Req #2:</strong> 12,000ms PDF export task</span>
+              </div>
+              <div style="background: var(--accent-amber-dim); border-left: 4px solid var(--accent-amber); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f;">
+                <strong>Key Takeaway:</strong> Round-robin counts requests, not CPU cycles or queue depth.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Episode 3 Opening & Scene 1:</strong></p>
+          <p>"For two episodes we've said 'behind a load balancer.' Let's open the box. 12 requests across 3 servers."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 1 in `episodes/load-balancing`</div>
+          <p>"4, 4, and 4. Clean. But what if request 1 is a health check (1ms) and request 2 is an invoice generation (10s)?"</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 9: Episode 3 (Load Balancing) - Weighted Round-Robin
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 3 // LOAD BALANCING" data-index="9">
+        <div class="slide-header">
+          <h2 class="slide-title">Capacity-Aware: <span class="title-accent">Weighted Distribution</span></h2>
+          <p class="slide-subtitle">Unequal servers need proportional scheduling (A:3, B:2, C:1). But routing traffic is NOT moving state.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Weighted Schedule with Looped Dot Animation -->
+          <div class="card highlight-blue" style="flex: 1.35; padding: 22px 26px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-blue);">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                Weighted Load Balancer: [3, 2, 1] Capacity Ratio
+              </div>
+              <div id="s9-status-badge" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent-blue); background: var(--accent-blue-dim); padding: 5px 14px; border-radius: 999px; border: 1px solid var(--accent-blue-border);">
+                Schedule: [A, A, A, B, B, C]
+              </div>
+            </div>
+
+            <!-- SVG Routing Canvas -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 14px; padding: 10px; margin-bottom: 12px; position: relative;">
+              <svg id="s9-svg" viewBox="0 0 880 300" width="100%" height="300" style="overflow: visible;">
+                <!-- Track lines -->
+                <path d="M 125 150 L 320 150" fill="none" stroke="#cbd5e1" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s9-track-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s9-track-b" d="M 440 150 L 620 150" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+                <path id="s9-track-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6 6" />
+
+                <!-- Active path glowing highlight tracks -->
+                <path id="s9-glow-a" d="M 440 150 C 530 150, 530 50, 620 50" fill="none" stroke="#a8d2e8" stroke-width="5" opacity="0.2" />
+                <path id="s9-glow-b" d="M 440 150 L 620 150" fill="none" stroke="#cde59b" stroke-width="5" opacity="0.2" />
+                <path id="s9-glow-c" d="M 440 150 C 530 150, 530 250, 620 250" fill="none" stroke="#cbb8dd" stroke-width="5" opacity="0.2" />
+
+                <!-- Client Node -->
+                <g transform="translate(15, 105)">
+                  <rect width="110" height="90" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="55" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#64748b" letter-spacing="0.05em">CLIENT</text>
+                  <text x="55" y="65" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">12 Reqs</text>
+                </g>
+
+                <!-- Load Balancer Center Node -->
+                <g transform="translate(320, 95)">
+                  <rect id="s9-lb-box" width="120" height="110" rx="18" fill="#edf7fd" stroke="#1c83c3" stroke-width="2.5" />
+                  <circle cx="60" cy="35" r="16" fill="#1c83c3" />
+                  <text x="60" y="41" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff">⚖</text>
+                  <text x="60" y="72" text-anchor="middle" font-size="11" font-weight="800" fill="#080808" letter-spacing="0.05em">WEIGHTED LB</text>
+                  <text id="s9-lb-sub" x="60" y="92" text-anchor="middle" font-size="12" font-weight="800" fill="#1c83c3">Schedule: 3:2:1</text>
+                </g>
+
+                <!-- Backend A (Weight 3) -->
+                <g id="s9-backend-a" transform="translate(620, 10)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#a8d2e8" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#1c83c3" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#1c83c3" letter-spacing="0.05em">NODE A (WEIGHT 3)</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s9-count-a">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (50.0%)</text>
+                </g>
+
+                <!-- Backend B (Weight 2) -->
+                <g id="s9-backend-b" transform="translate(620, 110)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#cde59b" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#8cc927" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#8cc927" letter-spacing="0.05em">NODE B (WEIGHT 2)</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s9-count-b">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (33.3%)</text>
+                </g>
+
+                <!-- Backend C (Weight 1) -->
+                <g id="s9-backend-c" transform="translate(620, 210)">
+                  <rect width="220" height="80" rx="14" fill="#ffffff" stroke="#cbb8dd" stroke-width="2" />
+                  <rect x="0" y="0" width="8" height="80" rx="4" fill="#6a4b91" />
+                  <text x="24" y="32" font-size="12" font-weight="800" fill="#6a4b91" letter-spacing="0.05em">NODE C (WEIGHT 1)</text>
+                  <text x="24" y="60" font-size="26" font-weight="800" fill="#0f172a" id="s9-count-c">0</text>
+                  <text x="62" y="60" font-size="13" font-weight="600" fill="#64748b">reqs (16.7%)</text>
+                </g>
+
+                <!-- Flying Dots Layer -->
+                <g id="s9-particles-layer"></g>
+              </svg>
+            </div>
+
+            <!-- Cyclic assignment strip -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 12px; padding: 12px 16px; font-family: var(--font-mono); font-size: 13px;">
+              <div style="color: var(--text-muted); margin-bottom: 8px; font-weight: 700; font-size: 12px;">// Weighted Sequence: [A, A, A, B, B, C] &times; 2 (Looped 12 requests)</div>
+              <div id="s9-tokens-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <span class="s9-tok" data-i="1" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">1:A</span>
+                <span class="s9-tok" data-i="2" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">2:A</span>
+                <span class="s9-tok" data-i="3" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">3:A</span>
+                <span class="s9-tok" data-i="4" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">4:B</span>
+                <span class="s9-tok" data-i="5" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">5:B</span>
+                <span class="s9-tok" data-i="6" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">6:C</span>
+                <span class="s9-tok" data-i="7" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">7:A</span>
+                <span class="s9-tok" data-i="8" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">8:A</span>
+                <span class="s9-tok" data-i="9" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">9:A</span>
+                <span class="s9-tok" data-i="10" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">10:B</span>
+                <span class="s9-tok" data-i="11" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">11:B</span>
+                <span class="s9-tok" data-i="12" style="background: #ffffff; border: 1px solid var(--border-card); color: var(--text-muted); padding: 3px 8px; border-radius: 6px; font-weight: 700;">12:C</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Routing != State Reminder -->
+          <div class="card highlight-amber" style="flex: 0.9;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              Critical Callback: Routing &ne; State
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 16px; line-height: 1.6; color: var(--text-main); font-weight: 600;">
+                “We changed <strong>where requests land</strong>, not where state lives.”
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                <div class="step-box bad" style="margin: 0;">
+                  <span>Per-server caches remain isolated in RAM</span>
+                </div>
+                <div class="step-box bad" style="margin: 0;">
+                  <span>Per-server rate counters still multiply total quota</span>
+                </div>
+              </div>
+              <div style="background: var(--accent-amber-dim); border-left: 4px solid var(--accent-amber); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f;">
+                A load balancer spreads traffic. It does not synchronize memory.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 2: Weighted Round-Robin:</strong></p>
+          <p>"In production, Server A is a c6i.2xlarge, Server C is a t4g.small. You give them weights: 3, 2, 1."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 2 in `episodes/load-balancing`</div>
+          <p>"Crucial callback to Episodes 1 & 2: balancing requests does not balance state! Memory stays stuck in each node."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 10: Episode 4 (Circuit Breaker) - Electrical Analogy
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="10">
+        <div class="slide-header">
+          <h2 class="slide-title">Circuit Breaker: <span class="title-accent">State Machine &amp; Analogy</span></h2>
+          <p class="slide-subtitle">In software, "Open" means the circuit is broken and traffic is blocked. Open is a protective choice, not the fault.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: State Table & Meaning -->
+          <div class="card" style="flex: 0.95; padding: 22px 24px;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              The Three States
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <table class="comp-table">
+                <thead>
+                  <tr>
+                    <th>State</th>
+                    <th>Electrical</th>
+                    <th>Software Meaning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="s10-row-closed" style="transition: all 0.3s;">
+                    <td style="color: var(--accent-green); font-weight: 700;">● CLOSED</td>
+                    <td>Circuit connected</td>
+                    <td>Calls flow normally to partner</td>
+                  </tr>
+                  <tr id="s10-row-open" style="transition: all 0.3s;">
+                    <td style="color: var(--accent-coral); font-weight: 700;">● OPEN</td>
+                    <td>Circuit broken</td>
+                    <td>Fail fast immediately; 0 wait</td>
+                  </tr>
+                  <tr id="s10-row-half" style="transition: all 0.3s;">
+                    <td style="color: var(--accent-amber); font-weight: 700;">● HALF-OPEN</td>
+                    <td>Testing loop</td>
+                    <td>Send 1 probe test call to check health</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div id="s10-insight-box" style="background: var(--bg-subtle); border-left: 4px solid var(--accent-blue); padding: 14px 16px; border-radius: 4px 8px 8px 4px; font-size: 14px; color: var(--text-body); transition: all 0.3s;">
+                <strong>Key Insight:</strong> OPEN is our system actively protecting itself from slow hangs.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Animated State Machine Cycle -->
+          <div class="card highlight-blue" style="flex: 1.25; padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="card-header-label" style="margin-bottom: 0; color: var(--accent-blue);">
+                <span class="dot" style="background: var(--accent-blue);"></span>
+                State Transition Cycle
+              </div>
+              <div id="s10-badge" style="font-family: var(--font-mono); font-size: 12px; font-weight: 800; color: var(--accent-green); background: var(--accent-green-dim); padding: 4px 12px; border-radius: 999px; border: 1px solid var(--accent-green-border); transition: all 0.2s;">
+                STATE: CLOSED (Normal)
+              </div>
+            </div>
+
+            <!-- SVG State Diagram with Motion -->
+            <div style="background: var(--bg-subtle); border: 1px solid var(--border-card); border-radius: 14px; padding: 16px; flex: 1; display: flex; align-items: center; justify-content: center;">
+              <svg id="s10-svg" viewBox="0 0 760 440" width="100%" height="440" style="overflow: visible;">
+                <defs>
+                  <marker id="arrow-coral" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--accent-coral)" />
+                  </marker>
+                  <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--accent-amber)" />
+                  </marker>
+                  <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                    <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--accent-green)" />
+                  </marker>
+                </defs>
+
+                <!-- Transition Path 1: CLOSED -> OPEN (Top curve) -->
+                <path id="s10-path-to-open" d="M 260 105 C 370 50, 410 50, 500 105" fill="none" stroke="var(--accent-coral)" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow-coral)" />
+                <rect x="310" y="45" width="160" height="28" rx="8" fill="#ffffff" stroke="var(--accent-coral-border)" stroke-width="1.5" />
+                <text x="390" y="63" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)">&rarr; 3 Failures &rarr;</text>
+
+                <!-- Transition Path 2: OPEN -> HALF-OPEN (Right curve) -->
+                <path id="s10-path-to-half" d="M 610 175 C 610 270, 540 335, 500 335" fill="none" stroke="var(--accent-amber)" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow-amber)" />
+                <rect x="520" y="225" width="170" height="28" rx="8" fill="#ffffff" stroke="var(--accent-amber-border)" stroke-width="1.5" />
+                <text x="605" y="243" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-amber)">Cooldown (30s) &darr;</text>
+
+                <!-- Transition Path 3: HALF-OPEN -> CLOSED (Left curve up) -->
+                <path id="s10-path-to-closed" d="M 260 335 C 220 335, 150 270, 150 175" fill="none" stroke="var(--accent-green)" stroke-width="3" stroke-dasharray="7 7" marker-end="url(#arrow-green)" />
+                <rect x="70" y="225" width="170" height="28" rx="8" fill="#ffffff" stroke="var(--accent-green-border)" stroke-width="1.5" />
+                <text x="155" y="243" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-green)">&larr; Probe Succeeds</text>
+
+                <!-- NODE 1: CLOSED -->
+                <g id="s10-node-closed" transform="translate(50, 60)" style="cursor: default;">
+                  <rect id="s10-box-closed" width="210" height="105" rx="16" fill="var(--accent-green-dim)" stroke="var(--accent-green)" stroke-width="3" filter="drop-shadow(0 6px 14px rgba(22,163,74,0.18))" />
+                  <text x="105" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="22" font-weight="900" fill="var(--accent-green)">CLOSED</text>
+                  <text id="s10-sub-closed" x="105" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="var(--text-muted)">Normal Traffic Flow</text>
+                  <text id="s10-fail-count" x="105" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="800" fill="var(--accent-coral)"></text>
+                </g>
+
+                <!-- NODE 2: OPEN -->
+                <g id="s10-node-open" transform="translate(500, 60)" style="cursor: default;">
+                  <rect id="s10-box-open" width="210" height="105" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="105" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="22" font-weight="900" fill="var(--text-muted)">OPEN</text>
+                  <text id="s10-sub-open" x="105" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="var(--text-dim)">Block &amp; Fail Fast</text>
+                  <text id="s10-open-sub" x="105" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--accent-coral)">0ms wait / protect</text>
+                </g>
+
+                <!-- NODE 3: HALF-OPEN -->
+                <g id="s10-node-half" transform="translate(260, 280)" style="cursor: default;">
+                  <rect id="s10-box-half" width="240" height="105" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                  <text x="120" y="42" text-anchor="middle" font-family="var(--font-sans)" font-size="22" font-weight="900" fill="var(--text-muted)">HALF-OPEN</text>
+                  <text id="s10-sub-half" x="120" y="66" text-anchor="middle" font-family="var(--font-mono)" font-size="12" font-weight="700" fill="var(--text-dim)">Admit 1 Test Probe Call</text>
+                  <text id="s10-half-sub" x="120" y="88" text-anchor="middle" font-family="var(--font-mono)" font-size="11" font-weight="700" fill="var(--accent-amber)">Concurrent calls rejected</text>
+                </g>
+
+                <!-- Moving particles / pulse layer -->
+                <g id="s10-particles-layer"></g>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Episode 4 Opening:</strong></p>
+          <p>"Every engineer gets confused by Closed vs Open. In English, 'the store is open' is good. In electronics, an OPEN circuit has no current!"</p>
+          <div class="notes-cue">"Closed = calls flow. Open = we stopped calling. Half-open = testing if it's safe."</div>
+          <p>Explain that timeout bounds ONE call. A breaker remembers that the last 3 calls timed out and stops wasting time.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="11">
+        <div class="slide-header">
+          <h2 class="slide-title">The Wrong Boundary: <span style="color: var(--accent-coral);">1 Shared Breaker Kills All Couriers</span></h2>
+          <p class="slide-subtitle">Checkout queries 3 independent couriers (A, B, C). One global breaker disables the entire checkout when Courier B fails.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: The Blast Radius Architecture -->
+          <div class="card highlight-coral" style="flex: 1.1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div class="card-header-label" style="color: var(--accent-coral); margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-coral);"></span>
+                Coarse Boundary: 1 Breaker Wrapped Around All 3
+              </div>
+              <div id="s11-status-badge" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 12px; border-radius: 9999px; border: 1.5px solid var(--accent-green); background: var(--accent-green-dim); color: var(--text-main);">
+                State: All Couriers Healthy
+              </div>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <!-- Outer Box representing single breaker -->
+              <div id="s11-breaker-box" style="border: 2px dashed var(--accent-green); border-radius: 12px; padding: 20px; background: var(--accent-green-dim); transition: all 0.3s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <span id="s11-breaker-label" style="font-size: 13px; color: var(--text-main); font-weight: 800; letter-spacing: 0.05em;">[Shared Checkout Breaker: CLOSED]</span>
+                  <span id="s11-breaker-state-pill" style="background: var(--accent-green); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 800; letter-spacing: 0.05em;">PASSING</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <div id="s11-courier-a" style="flex: 1; background: #ffffff; border: 2px solid var(--border-card); padding: 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease;">
+                    <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;">Courier A</div>
+                    <div id="s11-courier-a-sub" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Healthy ✓</div>
+                  </div>
+                  <div id="s11-courier-b" style="flex: 1; background: #ffffff; border: 2px solid var(--border-card); padding: 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease;">
+                    <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;" id="s11-courier-b-title">Courier B</div>
+                    <div id="s11-courier-b-sub" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Healthy ✓</div>
+                  </div>
+                  <div id="s11-courier-c" style="flex: 1; background: #ffffff; border: 2px solid var(--border-card); padding: 12px; border-radius: 8px; text-align: center; transition: all 0.3s ease;">
+                    <div style="font-weight: 800; color: var(--accent-green); font-size: 14px;">Courier C</div>
+                    <div id="s11-courier-c-sub" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Healthy ✓</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Animated Checkout Log Row -->
+              <div id="s11-log-box" style="background: #ffffff; border: 2px solid var(--border-card); border-radius: 8px; padding: 14px; font-size: 14px; color: var(--text-body); transition: all 0.3s ease;">
+                <span id="s11-log-title" style="font-weight: 800; color: var(--text-main);">Checkout Flow:</span>
+                <span id="s11-log-detail">Waiting for customer checkouts...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: The Lesson -->
+          <div class="card" style="flex: 0.9;">
+            <div class="card-header-label">
+              <span class="dot" style="background: var(--text-dim);"></span>
+              Specification Trap
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <p style="font-size: 18px; line-height: 1.5; color: var(--text-main); font-weight: 600;">
+                “The code executed <em>exactly</em> as specified. <strong style="color: var(--accent-coral);">The specification was the bug.</strong>”
+              </p>
+              <div style="font-size: 14px; color: var(--text-body); line-height: 1.6;">
+                AI will happily wrap your checkout with a circuit breaker if you ask it to "add resilience". But wrapping the wrong boundary turns a minor dependency glitch into a total site outage.
+              </div>
+              <div style="border-left: 4px solid var(--accent-amber); background: var(--accent-amber-dim); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #78350f;">
+                One partner failing should remove one shipping option, not shut down checkout.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 3: The Wrong Boundary:</strong></p>
+          <p>"Courier B is timing out. Couriers A and C are 100% fine. But you put one shared breaker on the quote function."</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 3 in `episodes/circuit-breaker`</div>
+          <p>"After 3 checkouts, the shared breaker trips. Checkout 4 calls nobody. A and C were killed by B's failure."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 12: Episode 4 (Circuit Breaker) - Isolated Breakers & Probe
+           =================================================================== -->
+      <section class="slide" data-ep="EPISODE 4 // CIRCUIT BREAKER" data-index="12">
+        <div class="slide-header">
+          <h2 class="slide-title">Isolated Boundaries: <span class="title-accent">Graceful Degradation &amp; Recovery</span></h2>
+          <p class="slide-subtitle">Isolate breakers per dependency. Probe test calls verify recovery before restoring full traffic.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Left: Isolated Breakers Diagram -->
+          <div class="card highlight-green" style="flex: 1.1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div class="card-header-label" style="color: var(--accent-green); margin-bottom: 0;">
+                <span class="dot" style="background: var(--accent-green);"></span>
+                Fine-Grained Boundary: Breaker Per Courier
+              </div>
+              <div id="s12-status-badge" style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 12px; border-radius: 9999px; border: 1.5px solid var(--accent-green); background: var(--accent-green-dim); color: var(--text-main);">
+                Phase: Isolated Failure
+              </div>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="display: flex; gap: 12px;">
+                <!-- Courier A Box -->
+                <div id="s12-card-a" class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green); transition: all 0.3s ease;">
+                  <div class="label" style="color: var(--text-main);">Courier A</div>
+                  <div id="s12-state-a" style="color: var(--accent-green); font-size: 13px; font-family: var(--font-sans); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
+                  <div id="s12-quote-a" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Quotes: $15.00 ✓</div>
+                </div>
+
+                <!-- Courier B Box -->
+                <div id="s12-card-b" class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-coral); background: var(--accent-coral-dim); transition: all 0.3s ease;">
+                  <div class="label" style="color: var(--text-main);">Courier B</div>
+                  <div id="s12-state-b" style="color: var(--accent-coral); font-size: 13px; font-family: var(--font-sans); font-weight: 800; margin: 6px 0;">[OPEN]</div>
+                  <div id="s12-quote-b" style="font-size: 12px; color: var(--accent-coral); font-weight: 700;">Fast-fail (0ms) ✗</div>
+                </div>
+
+                <!-- Courier C Box -->
+                <div id="s12-card-c" class="metric-tile" style="flex: 1; text-align: center; border-top: 4px solid var(--accent-green); transition: all 0.3s ease;">
+                  <div class="label" style="color: var(--text-main);">Courier C</div>
+                  <div id="s12-state-c" style="color: var(--accent-green); font-size: 13px; font-family: var(--font-sans); font-weight: 800; margin: 6px 0;">[CLOSED]</div>
+                  <div id="s12-quote-c" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Quotes: $18.50 ✓</div>
+                </div>
+              </div>
+
+              <div id="s12-log-box" style="background: var(--accent-green-dim); border: 2px solid var(--accent-green); border-radius: 8px; padding: 14px; font-size: 14px; color: var(--text-main); transition: all 0.3s ease;">
+                <strong>Checkout Experience:</strong> <span id="s12-log-text">“Quotes available from Courier A ($15) and Courier C ($18.50). Courier B isolated.” Sale completes!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Probe Recovery Cycle -->
+          <div class="card highlight-blue" style="flex: 0.9;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              Recovery Is Tested, Not Assumed
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+              <div style="font-family: var(--font-sans); font-size: 13px; display: flex; flex-direction: column; gap: 10px;">
+                <div id="s12-step-1" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
+                  <span>1. Cooldown passes &rarr; B enters <strong>HALF-OPEN</strong></span>
+                </div>
+                <div id="s12-step-2" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
+                  <span>2. Single test probe admitted to B</span>
+                </div>
+                <div id="s12-step-3" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
+                  <span>3. Probe succeeds &rarr; B transitions to <strong>CLOSED</strong></span>
+                </div>
+                <div id="s12-step-4" class="step-box" style="margin: 0; padding: 10px 14px; transition: all 0.3s ease;">
+                  <span>4. All 3 couriers available again</span>
+                </div>
+              </div>
+              <div style="background: var(--accent-blue-dim); border: 2px solid var(--accent-blue); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-main); font-weight: 600;">
+                Traffic is restored only after evidence of recovery, never just timer assumptions.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Scene 4: Isolated Breakers & Probe Recovery:</strong></p>
+          <p>"Now give Courier B its own breaker. What happens on checkout 4?"</p>
+          <div class="notes-code-cue">CUE: Run `go run main.go` -> Option 4 in `episodes/circuit-breaker`</div>
+          <p>"The customer still gets quotes from A and C. Then watch the simulated clock advance: half-open probe succeeds, B is restored."</p>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           SLIDE 13: Closing - Architecture Principles
+           =================================================================== -->
+      <section class="slide" data-ep="CONCLUSION // PRINCIPLES" data-index="13">
+        <div class="slide-header">
+          <h2 class="slide-title">Architecture Principles: <span class="title-accent">Human Judgment in the Age of AI</span></h2>
+          <p class="slide-subtitle">AI writes code faster than you ever could. Your role is deciding the system boundaries and trade-offs.</p>
+        </div>
+        <div class="slide-content">
+          <!-- Principle 1 -->
+          <div class="card highlight-blue" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-blue);">
+              <span class="dot" style="background: var(--accent-blue);"></span>
+              1. Start Local, Pay Later
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 15px; color: var(--text-body); line-height: 1.6;">
+                Don't add Redis, Kafka, or microservices on day one. An in-memory map or local token bucket is fast, simple, and has zero network failure modes.
+              </p>
+              <div style="background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); padding: 14px; border-radius: 8px; font-size: 13px; color: #1e40af;">
+                <strong>Rule:</strong> Evolve to distributed state only when multiple instances demand consistency.
+              </div>
+            </div>
+          </div>
+
+          <!-- Principle 2 -->
+          <div class="card highlight-amber" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-amber);">
+              <span class="dot" style="background: var(--accent-amber);"></span>
+              2. Routing &ne; Shared State
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 15px; color: var(--text-body); line-height: 1.6;">
+                Adding a load balancer only balances incoming requests. It does not synchronize cache memory or unify rate limit quotas across servers.
+              </p>
+              <div style="background: var(--accent-amber-dim); border: 1px solid var(--accent-amber-border); padding: 14px; border-radius: 8px; font-size: 13px; color: #78350f;">
+                <strong>Rule:</strong> Scaling horizontally forces you to choose between eventual consistency and shared storage latency.
+              </div>
+            </div>
+          </div>
+
+          <!-- Principle 3 -->
+          <div class="card highlight-green" style="flex: 1;">
+            <div class="card-header-label" style="color: var(--accent-green);">
+              <span class="dot" style="background: var(--accent-green);"></span>
+              3. Choose the Right Boundary
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <p style="font-size: 15px; color: var(--text-body); line-height: 1.6;">
+                Resilience patterns are only as smart as their boundaries. Isolate circuits per dependency and choose rate-limit keys by client identity, not raw IP.
+              </p>
+              <div style="background: var(--accent-green-dim); border: 1px solid var(--accent-green-border); padding: 14px; border-radius: 8px; font-size: 13px; color: #166534;">
+                <strong>Rule:</strong> A failure in one external partner should degrade a feature, not crash the checkout.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speaker-note-content" style="display:none;">
+          <p><strong>Closing & Retrospective:</strong></p>
+          <p>"To wrap up: AI is an incredible junior-to-mid developer that writes code instantly. But AI does not understand your blast radius or your business liability."</p>
+          <div class="notes-cue">"Know what your AI is building. Choose the architecture. Thank you!"</div>
+          <p>Open for Q&A with Heru.</p>
+        </div>
+      </section>
+
+    </div><!-- /slides-viewport -->
+
+    <!-- Footer Controls -->
+    <footer>
+      <div class="key-hints">
+        <span><span class="key-badge">&larr;</span> / <span class="key-badge">&rarr;</span> Navigate</span>
+        <span><span class="key-badge">Space</span> Next</span>
+        <span><span class="key-badge">F</span> Fullscreen</span>
+        <span><span class="key-badge">R</span> Replay</span>
+        <span><span class="key-badge">S</span> Speaker Notes</span>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-dim);">
+        BPN DEV COMMUNITY &bull; HERU JOKO P. UTOMO
+      </div>
+    </footer>
+
+    <!-- Speaker Notes Popup Panel -->
+    <div id="notes-panel">
+      <div class="notes-header">
+        <div class="notes-title">
+          <span>🎙️</span> SPEAKER NOTES &amp; DEMO CUES
+        </div>
+        <button class="notes-close-btn" id="notes-close-btn" title="Close Notes (S)">&times;</button>
+      </div>
+      <div class="notes-body" id="notes-body">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+  </div><!-- /stage -->
+
+  <script>
+    /* -------------------------------------------------------------
+       Presentation Engine (Vanilla JS, 0 External Dependencies)
+       ------------------------------------------------------------- */
+    (function() {
+      'use strict';
+
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const totalSlides = slides.length;
+      let currentIndex = 0;
+
+      const stage = document.getElementById('stage');
+      const counterCurrent = document.getElementById('counter-current');
+      const counterTotal = document.getElementById('counter-total');
+      const progressFill = document.getElementById('progress-fill');
+      const headerTag = document.getElementById('header-tag');
+      const notesPanel = document.getElementById('notes-panel');
+      const notesBody = document.getElementById('notes-body');
+      const notesCloseBtn = document.getElementById('notes-close-btn');
+
+      counterTotal.textContent = totalSlides < 10 ? '0' + totalSlides : totalSlides;
+
+      // 1. Dynamic Scaling to preserve 16:9 aspect ratio at any window size
+      function resizeStage() {
+        const stageWidth = 1920;
+        const stageHeight = 1080;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        const scaleX = windowWidth / stageWidth;
+        const scaleY = windowHeight / stageHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      }
+
+      window.addEventListener('resize', resizeStage);
+      resizeStage();
+
+      // 2. Navigation Function
+      function goToSlide(index) {
+        if (index < 0) index = 0;
+        if (index >= totalSlides) index = totalSlides - 1;
+
+        if (index === currentIndex && slides[currentIndex].classList.contains('active')) {
+          return;
+        }
+
+        slides.forEach(s => s.classList.remove('active'));
+        currentIndex = index;
+        const activeSlide = slides[currentIndex];
+        activeSlide.classList.add('active');
+
+        // Update Counter
+        const formattedIndex = (currentIndex + 1) < 10 ? '0' + (currentIndex + 1) : (currentIndex + 1);
+        counterCurrent.textContent = formattedIndex;
+
+        // Update Progress Bar
+        const pct = ((currentIndex + 1) / totalSlides) * 100;
+        progressFill.style.width = pct + '%';
+
+        // Update Header Tag
+        const epTag = activeSlide.getAttribute('data-ep') || 'SYSTEM DESIGN';
+        headerTag.textContent = epTag;
+
+        // Update Notes
+        const noteSource = activeSlide.querySelector('.speaker-note-content');
+        notesBody.innerHTML = noteSource ? noteSource.innerHTML : '<p style="color:var(--text-muted)">No notes for this slide.</p>';
+
+        // Trigger or stop Looped Animations
+        if (currentIndex === 1) {
+          startSlide2Loop();
+        } else if (currentIndex === 4) {
+          startSlide5Loop();
+        } else if (currentIndex === 5) {
+          startSlide6Loop();
+        } else if (currentIndex === 7) {
+          startSlide8Loop();
+        } else if (currentIndex === 8) {
+          startSlide9Loop();
+        } else if (currentIndex === 9) {
+          startSlide10Loop();
+        } else if (currentIndex === 10) {
+          startSlide11Loop();
+        } else if (currentIndex === 11) {
+          startSlide12Loop();
+        } else {
+          stopAllAnimations();
+        }
+      }
+
+      // -------------------------------------------------------------
+      // Load Balancer Looped Animation Controllers (Slides 8 & 9)
+      // -------------------------------------------------------------
+      let s8AnimTimer = null;
+      let s9AnimTimer = null;
+
+      function getBezierPoint(t, p0, p1, p2, p3) {
+        const cx = 3 * (p1.x - p0.x);
+        const bx = 3 * (p2.x - p1.x) - cx;
+        const ax = p3.x - p0.x - cx - bx;
+        const cy = 3 * (p1.y - p0.y);
+        const by = 3 * (p2.y - p1.y) - cy;
+        const ay = p3.y - p0.y - cy - by;
+        const xt = ax * (t*t*t) + bx * (t*t) + cx * t + p0.x;
+        const yt = ay * (t*t*t) + by * (t*t) + cy * t + p0.y;
+        return { x: xt, y: yt };
+      }
+
+      // -------------------------------------------------------------
+      // Rate Limit Noisy Neighbor Starvation Controller (Slide 5)
+      // -------------------------------------------------------------
+      let s5AnimTimer = null;
+      let s5Timeouts = [];
+
+      function clearS5Timeouts() {
+        s5Timeouts.forEach(t => clearTimeout(t));
+        s5Timeouts = [];
+      }
+
+      function stopSlide5Loop() {
+        if (s5AnimTimer) { clearInterval(s5AnimTimer); s5AnimTimer = null; }
+        clearS5Timeouts();
+        const lp = document.getElementById('s5-particles-layer');
+        if (lp) lp.innerHTML = '';
+      }
+
+      function startSlide5Loop() {
+        stopAllAnimations();
+        const s5 = document.querySelector('section[data-index="5"]');
+        if (!s5 || !s5.classList.contains('active')) return;
+
+        const badge = document.getElementById('s5-status-badge');
+        const botBar = document.getElementById('s5-bar-bot');
+        const aliceBar = document.getElementById('s5-bar-alice');
+        const capText = document.getElementById('s5-cap-text');
+        const aliceStatus = document.getElementById('s5-alice-status');
+        const stepBot = document.getElementById('s5-step-bot');
+        const stepAlice = document.getElementById('s5-step-alice');
+        const layer = document.getElementById('s5-particles-layer');
+
+        const slotBoxes = [
+          document.getElementById('s5-box-1'),
+          document.getElementById('s5-box-2'),
+          document.getElementById('s5-box-3'),
+          document.getElementById('s5-box-4'),
+          document.getElementById('s5-box-5')
+        ];
+        const slotLabels = [
+          document.getElementById('s5-label-1'),
+          document.getElementById('s5-label-2'),
+          document.getElementById('s5-label-3'),
+          document.getElementById('s5-label-4'),
+          document.getElementById('s5-label-5')
+        ];
+
+        function setSlotState(idx, owner) {
+          const box = slotBoxes[idx];
+          const label = slotLabels[idx];
+          if (!box || !label) return;
+          if (owner === 'bot') {
+            box.setAttribute('fill', 'var(--accent-coral-dim)');
+            box.setAttribute('stroke', 'var(--accent-coral)');
+            box.setAttribute('stroke-width', '2');
+            label.textContent = '🤖 BOT';
+            label.style.fill = 'var(--accent-coral)';
+          } else if (owner === 'alice') {
+            box.setAttribute('fill', 'var(--accent-blue-dim)');
+            box.setAttribute('stroke', 'var(--accent-blue)');
+            box.setAttribute('stroke-width', '2');
+            label.textContent = '👤 ALICE';
+            label.style.fill = 'var(--accent-blue)';
+          } else {
+            box.setAttribute('fill', '#ffffff');
+            box.setAttribute('stroke', '#cbd5e1');
+            box.setAttribute('stroke-width', '1.5');
+            label.textContent = 'IDLE';
+            label.style.fill = 'var(--text-dim)';
+          }
+        }
+
+        function createDot(color, x, y) {
+          if (!layer) return null;
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '6.5');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))');
+          layer.appendChild(circle);
+          return circle;
+        }
+
+        function animateDot(startX, startY, endX, endY, color, duration, onComplete) {
+          const dot = createDot(color, startX, startY);
+          if (!dot) { if (onComplete) onComplete(); return; }
+          const startTime = performance.now();
+          function step(now) {
+            const el = now - startTime;
+            const p = Math.min(el / duration, 1);
+            dot.setAttribute('cx', startX + (endX - startX) * p);
+            dot.setAttribute('cy', startY + (endY - startY) * p);
+            if (p < 1) {
+              requestAnimationFrame(step);
+            } else {
+              dot.remove();
+              if (onComplete) onComplete();
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        function resetAll() {
+          if (layer) layer.innerHTML = '';
+          for (let i = 0; i < 5; i++) setSlotState(i, 'idle');
+          if (botBar) botBar.style.width = '0%';
+          if (aliceBar) aliceBar.style.width = '0%';
+          if (capText) capText.textContent = 'Idle Pool';
+          if (stepBot) { stepBot.style.boxShadow = ''; stepBot.style.borderColor = ''; }
+          if (stepAlice) { stepAlice.style.boxShadow = ''; stepAlice.style.borderColor = ''; }
+          if (aliceStatus) {
+            aliceStatus.innerHTML = 'Waiting for worker availability...';
+          }
+          if (badge) {
+            badge.textContent = 'Pool Status: Idle (0/5 Busy)';
+            badge.style.color = 'var(--text-muted)';
+            badge.style.background = 'var(--bg-subtle)';
+            badge.style.borderColor = 'var(--border-card)';
+          }
+        }
+
+        function runCycle() {
+          const s5Active = document.querySelector('section[data-index="5"]');
+          if (!s5Active || !s5Active.classList.contains('active')) {
+            stopSlide5Loop();
+            return;
+          }
+          clearS5Timeouts();
+          resetAll();
+
+          s5Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Pool Status: Bot Flooding Workers (5/5 Busy)';
+              badge.style.color = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral-dim)';
+              badge.style.borderColor = 'var(--accent-coral-border)';
+            }
+            if (stepBot) {
+              stepBot.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+              stepBot.style.borderColor = 'var(--accent-coral)';
+            }
+            if (botBar) botBar.style.width = '100%';
+            if (capText) capText.textContent = 'Occupies 100% Capacity';
+
+            const slotTargets = [337, 445, 553, 661, 769];
+            [0, 1, 2, 3, 4].forEach((idx, i) => {
+              s5Timeouts.push(setTimeout(() => {
+                animateDot(120, 46, slotTargets[idx], 88, '#ff5960', 380, () => {
+                  setSlotState(idx, 'bot');
+                });
+              }, i * 120));
+            });
+          }, 400));
+
+          s5Timeouts.push(setTimeout(() => {
+            if (stepAlice) {
+              stepAlice.style.boxShadow = '0 0 0 2px var(--accent-blue)';
+              stepAlice.style.borderColor = 'var(--accent-blue)';
+            }
+            if (aliceStatus) {
+              aliceStatus.innerHTML = 'Req #1 queued... waiting for available worker (waited 2.1s)';
+            }
+            animateDot(120, 114, 250, 114, '#1c83c3', 450, () => {
+              s5Timeouts.push(setTimeout(() => {
+                setSlotState(4, 'alice');
+                if (botBar) botBar.style.width = '80%';
+                if (aliceBar) aliceBar.style.width = '20%';
+                if (capText) capText.textContent = '80% Bot / 20% Alice';
+                s5Timeouts.push(setTimeout(() => {
+                  setSlotState(4, 'bot');
+                  if (botBar) botBar.style.width = '100%';
+                  if (aliceBar) aliceBar.style.width = '0%';
+                }, 700));
+              }, 400));
+            });
+          }, 2000));
+
+          s5Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Starvation Alert: Alice Req #3 TIMEOUT (504)';
+              badge.style.color = '#ffffff';
+              badge.style.background = 'var(--accent-coral)';
+              badge.style.borderColor = 'var(--accent-coral)';
+            }
+            if (stepAlice) {
+              stepAlice.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+              stepAlice.style.borderColor = 'var(--accent-coral)';
+            }
+            if (aliceStatus) {
+              aliceStatus.innerHTML = 'Req #1 waited 2.1s &bull; Req #2 waited 2.3s &bull; Req #3: <strong style="color:#ffffff; background:var(--accent-coral); padding:2px 6px; border-radius:4px;">TIMEOUT (504)</strong>';
+            }
+            if (botBar) botBar.style.width = '94%';
+            if (aliceBar) aliceBar.style.width = '6%';
+            if (capText) capText.textContent = 'Occupies 94% Capacity';
+
+            animateDot(120, 114, 250, 114, '#ff5960', 450);
+          }, 4400));
+        }
+
+        runCycle();
+        s5AnimTimer = setInterval(runCycle, 7200);
+      }
+
+      // -------------------------------------------------------------
+      // Rate Limit Fixed Window vs Token Bucket Controller (Slide 6)
+      // -------------------------------------------------------------
+      let s6AnimTimer = null;
+      let s6Timeouts = [];
+
+      function clearS6Timeouts() {
+        s6Timeouts.forEach(t => clearTimeout(t));
+        s6Timeouts = [];
+      }
+
+      function stopSlide6Loop() {
+        if (s6AnimTimer) { clearInterval(s6AnimTimer); s6AnimTimer = null; }
+        clearS6Timeouts();
+        const lp = document.getElementById('s6-left-particles');
+        if (lp) lp.innerHTML = '';
+        const rp = document.getElementById('s6-right-particles');
+        if (rp) rp.innerHTML = '';
+      }
+
+      function startSlide6Loop() {
+        stopAllAnimations();
+        const s6 = document.querySelector('section[data-index="6"]');
+        if (!s6 || !s6.classList.contains('active')) return;
+
+        const leftBadge = document.getElementById('s6-left-badge');
+        const countW1 = document.getElementById('s6-count-w1');
+        const countW2 = document.getElementById('s6-count-w2');
+        const boxW1 = document.getElementById('s6-box-w1');
+        const boxW2 = document.getElementById('s6-box-w2');
+        const cardW1 = document.getElementById('s6-card-w1');
+        const cardW2 = document.getElementById('s6-card-w2');
+        const leftAlert = document.getElementById('s6-left-alert');
+        const needle = document.getElementById('s6-needle');
+        const leftLayer = document.getElementById('s6-left-particles');
+
+        const rightBadge = document.getElementById('s6-right-badge');
+        const tbTokensVal = document.getElementById('s6-tb-tokens-val');
+        const tbLog1 = document.getElementById('s6-tb-log-1');
+        const tbLog2 = document.getElementById('s6-tb-log-2');
+        const tbLog3 = document.getElementById('s6-tb-log-3');
+        const rightLayer = document.getElementById('s6-right-particles');
+        const tokens = [
+          document.getElementById('s6-tok-1'),
+          document.getElementById('s6-tok-2'),
+          document.getElementById('s6-tok-3'),
+          document.getElementById('s6-tok-4'),
+          document.getElementById('s6-tok-5')
+        ];
+
+        function setTokensCount(n) {
+          if (tbTokensVal) {
+            tbTokensVal.textContent = n + ' / 5';
+            tbTokensVal.style.color = n > 0 ? 'var(--accent-green)' : 'var(--accent-coral)';
+          }
+          if (rightBadge) {
+            if (n === 5) {
+              rightBadge.textContent = 'Tokens: 5 / 5 (Full Capacity)';
+              rightBadge.style.color = 'var(--accent-green)';
+              rightBadge.style.background = 'var(--accent-green-dim)';
+              rightBadge.style.borderColor = 'var(--accent-green-border)';
+            } else if (n === 0) {
+              rightBadge.textContent = 'Tokens: 0 / 5 (Exhausted)';
+              rightBadge.style.color = 'var(--accent-coral)';
+              rightBadge.style.background = 'var(--accent-coral-dim)';
+              rightBadge.style.borderColor = 'var(--accent-coral-border)';
+            } else {
+              rightBadge.textContent = 'Tokens: ' + n + ' / 5 (Refilling)';
+              rightBadge.style.color = 'var(--accent-amber)';
+              rightBadge.style.background = 'var(--accent-amber-dim)';
+              rightBadge.style.borderColor = 'var(--accent-amber-border)';
+            }
+          }
+          tokens.forEach((tok, i) => {
+            if (!tok) return;
+            if (i < n) {
+              tok.style.opacity = '1';
+              tok.style.transform = 'scale(1)';
+            } else {
+              tok.style.opacity = '0.08';
+              tok.style.transform = 'scale(0.95)';
+            }
+          });
+        }
+
+        function dropParticle(x, yTarget, color, layer, onDone) {
+          if (!layer) return;
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('cx', x);
+          dot.setAttribute('cy', '10');
+          dot.setAttribute('r', '6');
+          dot.setAttribute('fill', color);
+          dot.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))');
+          layer.appendChild(dot);
+
+          const start = performance.now();
+          const dur = 300;
+          function anim(now) {
+            const p = Math.min((now - start) / dur, 1);
+            const cy = 10 + p * (yTarget - 10);
+            dot.setAttribute('cy', cy);
+            if (p < 1) {
+              requestAnimationFrame(anim);
+            } else {
+              dot.remove();
+              if (onDone) onDone();
+            }
+          }
+          requestAnimationFrame(anim);
+        }
+
+        function runCycle() {
+          const s6Active = document.querySelector('section[data-index="6"]');
+          if (!s6Active || !s6Active.classList.contains('active')) {
+            stopSlide6Loop();
+            return;
+          }
+          clearS6Timeouts();
+          if (leftLayer) leftLayer.innerHTML = '';
+          if (rightLayer) rightLayer.innerHTML = '';
+
+          // Reset Left Side Visuals
+          if (countW1) countW1.textContent = '0 / 5';
+          if (countW2) countW2.textContent = '0 / 5';
+          if (boxW1) { boxW1.setAttribute('stroke', '#cbd5e1'); boxW1.setAttribute('fill', '#ffffff'); }
+          if (boxW2) { boxW2.setAttribute('stroke', '#cbd5e1'); boxW2.setAttribute('fill', '#ffffff'); }
+          if (cardW1) { cardW1.style.background = 'var(--accent-amber-dim)'; cardW1.style.boxShadow = 'none'; }
+          if (cardW2) { cardW2.style.background = 'var(--accent-amber-dim)'; cardW2.style.boxShadow = 'none'; }
+          if (leftAlert) { leftAlert.style.transform = 'scale(1)'; leftAlert.style.borderColor = 'var(--accent-coral)'; }
+          if (needle) needle.setAttribute('transform', 'translate(20, 0)');
+          if (leftBadge) {
+            leftBadge.textContent = 'Timeline: 0.0s (Window 1)';
+            leftBadge.style.color = 'var(--accent-amber)';
+          }
+
+          // Reset Right Side Visuals
+          setTokensCount(5);
+          if (tbLog1) tbLog1.style.fontWeight = '700';
+          if (tbLog2) tbLog2.style.fontWeight = '700';
+          if (tbLog3) tbLog3.style.fontWeight = '700';
+
+          // --- TIMELINE STEP 1: needle moves to 0.9s (end of window 1) ---
+          s6Timeouts.push(setTimeout(() => {
+            if (needle) needle.setAttribute('transform', 'translate(225, 0)');
+            if (leftBadge) leftBadge.textContent = 'Timeline: 0.9s (Window 1 Burst)';
+            if (cardW1) {
+              cardW1.style.boxShadow = '0 0 0 2px var(--accent-amber)';
+              cardW1.style.background = '#fff9e7';
+            }
+            if (boxW1) {
+              boxW1.setAttribute('stroke', 'var(--accent-amber)');
+              boxW1.setAttribute('fill', 'var(--accent-amber-dim)');
+            }
+            if (countW1) countW1.textContent = '5 / 5';
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                dropParticle(50 + i * 40, 75, 'var(--accent-amber)', leftLayer);
+              }, i * 60);
+            }
+          }, 800));
+
+          // Right Side: 5 Requests Burst (drains 5 tokens instantly)
+          s6Timeouts.push(setTimeout(() => {
+            setTokensCount(0);
+            if (tbLog1) {
+              tbLog1.style.fontWeight = '900';
+              tbLog1.style.color = '#8cc927';
+            }
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                dropParticle(280 + i * 35, 75, 'var(--accent-green)', rightLayer);
+              }, i * 50);
+            }
+          }, 900));
+
+          // --- TIMELINE STEP 2: needle crosses boundary into 1.1s (start of window 2) ---
+          s6Timeouts.push(setTimeout(() => {
+            if (needle) needle.setAttribute('transform', 'translate(315, 0)');
+            if (leftBadge) {
+              leftBadge.textContent = 'Timeline: 1.1s (Window 2 Reset & Burst)';
+              leftBadge.style.color = 'var(--accent-coral)';
+            }
+            if (cardW2) {
+              cardW2.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+              cardW2.style.background = '#fff1f1';
+            }
+            if (boxW2) {
+              boxW2.setAttribute('stroke', 'var(--accent-coral)');
+              boxW2.setAttribute('fill', 'var(--accent-coral-dim)');
+            }
+            if (countW2) countW2.textContent = '5 / 5';
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                dropParticle(315 + i * 40, 75, 'var(--accent-coral)', leftLayer);
+              }, i * 60);
+            }
+
+            if (leftAlert) {
+              leftAlert.style.transform = 'scale(1.02)';
+              leftAlert.style.boxShadow = '0 4px 12px rgba(234,88,12,0.2)';
+            }
+          }, 2600));
+
+          // Right Side: 6th Request Arrives & Gets Blocked with 429
+          s6Timeouts.push(setTimeout(() => {
+            if (tbLog2) {
+              tbLog2.style.fontWeight = '900';
+              tbLog2.style.color = '#ff5960';
+            }
+            dropParticle(380, 98, '#ff5960', rightLayer, () => {
+              const blk = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              blk.setAttribute('x', '380');
+              blk.setAttribute('y', '98');
+              blk.setAttribute('text-anchor', 'middle');
+              blk.setAttribute('font-family', 'var(--font-mono)');
+              blk.setAttribute('font-size', '11');
+              blk.setAttribute('font-weight', '900');
+              blk.setAttribute('fill', '#ff5960');
+              blk.textContent = '429 BLOCKED';
+              if (rightLayer) rightLayer.appendChild(blk);
+              setTimeout(() => blk.remove(), 1200);
+            });
+          }, 2700));
+
+          // Right Side: Smooth Refill (+1 token at 4.2s, +1 token at 5.5s)
+          s6Timeouts.push(setTimeout(() => {
+            setTokensCount(1);
+            if (tbLog3) {
+              tbLog3.style.fontWeight = '900';
+              tbLog3.style.color = 'var(--accent-green)';
+            }
+            dropParticle(130, 122, 'var(--accent-green)', rightLayer);
+          }, 4200));
+
+          s6Timeouts.push(setTimeout(() => {
+            setTokensCount(2);
+            dropParticle(130, 101, 'var(--accent-green)', rightLayer);
+          }, 5500));
+        }
+
+        runCycle();
+        s6AnimTimer = setInterval(runCycle, 7500);
+      }
+
+      // -------------------------------------------------------------
+      // Circuit Breaker State Machine Animation Controller (Slide 10)
+      // -------------------------------------------------------------
+      let s10AnimTimer = null;
+      let s10Timeouts = [];
+
+      function clearS10Timeouts() {
+        s10Timeouts.forEach(t => clearTimeout(t));
+        s10Timeouts = [];
+      }
+
+      function stopSlide10Loop() {
+        if (s10AnimTimer) { clearInterval(s10AnimTimer); s10AnimTimer = null; }
+        clearS10Timeouts();
+        const lp = document.getElementById('s10-particles-layer');
+        if (lp) lp.innerHTML = '';
+      }
+
+      function startSlide10Loop() {
+        stopAllAnimations();
+        const s10 = document.querySelector('section[data-index="10"]');
+        if (!s10 || !s10.classList.contains('active')) return;
+
+        const badge = document.getElementById('s10-badge');
+        const boxClosed = document.getElementById('s10-box-closed');
+        const boxOpen = document.getElementById('s10-box-open');
+        const boxHalf = document.getElementById('s10-box-half');
+        const failCount = document.getElementById('s10-fail-count');
+        const layer = document.getElementById('s10-particles-layer');
+
+        const rowClosed = document.getElementById('s10-row-closed');
+        const rowOpen = document.getElementById('s10-row-open');
+        const rowHalf = document.getElementById('s10-row-half');
+
+        function setActiveVisual(state) {
+          if (boxClosed) {
+            boxClosed.setAttribute('fill', state === 'closed' ? 'var(--accent-green-dim)' : '#ffffff');
+            boxClosed.setAttribute('stroke', state === 'closed' ? 'var(--accent-green)' : '#cbd5e1');
+            boxClosed.setAttribute('stroke-width', state === 'closed' ? '3' : '2');
+            boxClosed.setAttribute('filter', state === 'closed' ? 'drop-shadow(0 4px 10px rgba(22,163,74,0.2))' : 'none');
+          }
+          if (boxOpen) {
+            boxOpen.setAttribute('fill', state === 'open' ? 'var(--accent-coral-dim)' : '#ffffff');
+            boxOpen.setAttribute('stroke', state === 'open' ? 'var(--accent-coral)' : '#cbd5e1');
+            boxOpen.setAttribute('stroke-width', state === 'open' ? '3' : '2');
+            boxOpen.setAttribute('filter', state === 'open' ? 'drop-shadow(0 4px 10px rgba(234,88,12,0.2))' : 'none');
+          }
+          if (boxHalf) {
+            boxHalf.setAttribute('fill', state === 'half' ? 'var(--accent-amber-dim)' : '#ffffff');
+            boxHalf.setAttribute('stroke', state === 'half' ? 'var(--accent-amber)' : '#cbd5e1');
+            boxHalf.setAttribute('stroke-width', state === 'half' ? '3' : '2');
+            boxHalf.setAttribute('filter', state === 'half' ? 'drop-shadow(0 4px 10px rgba(217,119,6,0.2))' : 'none');
+          }
+
+          if (rowClosed) rowClosed.style.background = state === 'closed' ? 'var(--accent-green-dim)' : '';
+          if (rowOpen) rowOpen.style.background = state === 'open' ? 'var(--accent-coral-dim)' : '';
+          if (rowHalf) rowHalf.style.background = state === 'half' ? 'var(--accent-amber-dim)' : '';
+        }
+
+        function animatePath(pathId, color, duration, onComplete) {
+          const path = document.getElementById(pathId);
+          if (!path || !layer) { if (onComplete) onComplete(); return; }
+          const length = path.getTotalLength();
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('r', '7');
+          dot.setAttribute('fill', color);
+          dot.setAttribute('filter', 'drop-shadow(0 2px 5px rgba(0,0,0,0.25))');
+          layer.appendChild(dot);
+
+          const startTime = performance.now();
+          function step(now) {
+            const el = now - startTime;
+            const p = Math.min(el / duration, 1);
+            const pt = path.getPointAtLength(p * length);
+            dot.setAttribute('cx', pt.x);
+            dot.setAttribute('cy', pt.y);
+            if (p < 1) {
+              requestAnimationFrame(step);
+            } else {
+              dot.remove();
+              if (onComplete) onComplete();
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        function runCycle() {
+          const s10Active = document.querySelector('section[data-index="10"]');
+          if (!s10Active || !s10Active.classList.contains('active')) {
+            stopSlide10Loop();
+            return;
+          }
+          clearS10Timeouts();
+          if (layer) layer.innerHTML = '';
+          setActiveVisual('closed');
+          if (failCount) failCount.textContent = '';
+          if (badge) {
+            badge.textContent = 'STATE: CLOSED (Normal Traffic)';
+            badge.style.color = 'var(--accent-green)';
+            badge.style.background = 'var(--accent-green-dim)';
+            badge.style.borderColor = 'var(--accent-green-border)';
+          }
+
+          s10Timeouts.push(setTimeout(() => {
+            if (failCount) failCount.textContent = 'Failures: 1 / 3';
+            if (badge) badge.textContent = 'Downstream Failure (1/3)';
+          }, 1000));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (failCount) failCount.textContent = 'Failures: 2 / 3';
+            if (badge) badge.textContent = 'Downstream Failure (2/3)';
+          }, 1800));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (failCount) failCount.textContent = 'Failures: 3 / 3 (THRESHOLD!)';
+            if (badge) {
+              badge.textContent = '3 Consecutive Failures → TRIP!';
+              badge.style.color = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral-dim)';
+              badge.style.borderColor = 'var(--accent-coral-border)';
+            }
+            animatePath('s10-path-to-open', '#ff5960', 700, () => {
+              setActiveVisual('open');
+              if (failCount) failCount.textContent = '';
+              if (badge) {
+                badge.textContent = 'STATE: OPEN (Failing Fast 0ms)';
+              }
+            });
+          }, 2600));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'OPEN: Cooldown 30s Expiring...';
+            }
+          }, 4200));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Cooldown Expired → PROBE TEST';
+              badge.style.color = 'var(--accent-amber)';
+              badge.style.background = 'var(--accent-amber-dim)';
+              badge.style.borderColor = 'var(--accent-amber-border)';
+            }
+            animatePath('s10-path-to-half', '#ffca3d', 700, () => {
+              setActiveVisual('half');
+              if (badge) {
+                badge.textContent = 'STATE: HALF-OPEN (Testing 1 Probe)';
+              }
+            });
+          }, 5000));
+
+          s10Timeouts.push(setTimeout(() => {
+            if (badge) {
+              badge.textContent = 'Probe Succeeded (200 OK) → RECOVER!';
+              badge.style.color = 'var(--accent-green)';
+              badge.style.background = 'var(--accent-green-dim)';
+              badge.style.borderColor = 'var(--accent-green-border)';
+            }
+            animatePath('s10-path-to-closed', '#8cc927', 700, () => {
+              setActiveVisual('closed');
+              if (failCount) failCount.textContent = 'Recovered!';
+              if (badge) {
+                badge.textContent = 'STATE: CLOSED (Traffic Restored)';
+              }
+            });
+          }, 6600));
+        }
+
+        runCycle();
+        s10AnimTimer = setInterval(runCycle, 8400);
+      }
+
+      // -------------------------------------------------------------
+      // Cache Concept Looped Animation Controller (Slide 2)
+      // -------------------------------------------------------------
+      let s2AnimTimer = null;
+      let s2Timeouts = [];
+
+      function clearS2Timeouts() {
+        s2Timeouts.forEach(t => clearTimeout(t));
+        s2Timeouts = [];
+      }
+
+      function stopSlide2Loop() {
+        if (s2AnimTimer) { clearInterval(s2AnimTimer); s2AnimTimer = null; }
+        clearS2Timeouts();
+        const lp = document.getElementById('s2-left-particles');
+        if (lp) lp.innerHTML = '';
+        const rp = document.getElementById('s2-right-particles');
+        if (rp) rp.innerHTML = '';
+      }
+
+      // -------------------------------------------------------------
+      // Slide 11: Shared Breaker Blast Radius Looped Animation
+      // -------------------------------------------------------------
+      let s11AnimTimer = null;
+      let s11Timeouts = [];
+
+      function clearS11Timeouts() {
+        s11Timeouts.forEach(t => clearTimeout(t));
+        s11Timeouts = [];
+      }
+
+      function stopSlide11Loop() {
+        if (s11AnimTimer) { clearInterval(s11AnimTimer); s11AnimTimer = null; }
+        clearS11Timeouts();
+      }
+
+      function startSlide11Loop() {
+        stopAllAnimations();
+        const s11 = document.querySelector('section[data-index="11"]');
+        if (!s11 || !s11.classList.contains('active')) return;
+
+        const badge = document.getElementById('s11-status-badge');
+        const box = document.getElementById('s11-breaker-box');
+        const label = document.getElementById('s11-breaker-label');
+        const pill = document.getElementById('s11-breaker-state-pill');
+        const bTitle = document.getElementById('s11-courier-b-title');
+        const bSub = document.getElementById('s11-courier-b-sub');
+        const courierB = document.getElementById('s11-courier-b');
+        const courierA = document.getElementById('s11-courier-a');
+        const courierC = document.getElementById('s11-courier-c');
+        const logBox = document.getElementById('s11-log-box');
+        const logTitle = document.getElementById('s11-log-title');
+        const logDetail = document.getElementById('s11-log-detail');
+
+        function resetVisuals() {
+          if (badge) {
+            badge.textContent = 'State: All Couriers Healthy';
+            badge.style.borderColor = 'var(--accent-green)';
+            badge.style.background = 'var(--accent-green-dim)';
+            badge.style.color = 'var(--text-main)';
+          }
+          if (box) {
+            box.style.borderColor = 'var(--accent-green)';
+            box.style.background = 'var(--accent-green-dim)';
+          }
+          if (label) {
+            label.textContent = '[Shared Checkout Breaker: CLOSED]';
+            label.style.color = 'var(--text-main)';
+          }
+          if (pill) {
+            pill.textContent = 'PASSING';
+            pill.style.background = 'var(--accent-green)';
+          }
+          [courierA, courierC].forEach(el => {
+            if (el) {
+              el.style.opacity = '1';
+              el.style.borderColor = 'var(--border-card)';
+            }
+          });
+          if (courierB) {
+            courierB.style.opacity = '1';
+            courierB.style.borderColor = 'var(--border-card)';
+          }
+          if (bTitle) {
+            bTitle.textContent = 'Courier B';
+            bTitle.style.color = 'var(--accent-green)';
+          }
+          if (bSub) {
+            bSub.textContent = 'Healthy ✓';
+            bSub.style.color = 'var(--text-muted)';
+          }
+          if (logBox) {
+            logBox.style.borderColor = 'var(--border-card)';
+            logBox.style.background = '#ffffff';
+          }
+          if (logTitle) logTitle.textContent = 'Checkout #1 - #3:';
+          if (logDetail) logDetail.textContent = ' Couriers A & C return quotes ($15, $18.50). Courier B times out (3.0s).';
+        }
+
+        function runCycle() {
+          const s11Active = document.querySelector('section[data-index="11"]');
+          if (!s11Active || !s11Active.classList.contains('active')) {
+            stopSlide11Loop();
+            return;
+          }
+          clearS11Timeouts();
+          resetVisuals();
+
+          // Phase 1: Courier B starts failing
+          s11Timeouts.push(setTimeout(() => {
+            if (courierB) {
+              courierB.style.borderColor = 'var(--accent-coral)';
+              courierB.style.background = 'var(--accent-coral-dim)';
+            }
+            if (bTitle) {
+              bTitle.textContent = 'Courier B (Fail #1)';
+              bTitle.style.color = 'var(--accent-coral)';
+            }
+            if (bSub) {
+              bSub.textContent = 'Timeout (3000ms) ✗';
+              bSub.style.color = 'var(--accent-coral)';
+            }
+            if (badge) {
+              badge.textContent = 'Downstream: Courier B Timeout (1/3)';
+              badge.style.borderColor = 'var(--accent-amber)';
+              badge.style.background = 'var(--accent-amber-dim)';
+            }
+          }, 1200));
+
+          // Phase 2: Courier B accumulates failures 2 & 3
+          s11Timeouts.push(setTimeout(() => {
+            if (bTitle) bTitle.textContent = 'Courier B (Fail #3 - THRESHOLD)';
+            if (badge) {
+              badge.textContent = 'Shared Breaker: 3 Failures Recorded → TRIPPING';
+              badge.style.borderColor = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral-dim)';
+            }
+          }, 2400));
+
+          // Phase 3: Shared breaker trips OPEN, killing A & C as collateral
+          s11Timeouts.push(setTimeout(() => {
+            if (box) {
+              box.style.borderColor = 'var(--accent-coral)';
+              box.style.background = 'var(--accent-coral-dim)';
+            }
+            if (label) {
+              label.textContent = '[Shared Checkout Breaker: OPEN]';
+              label.style.color = 'var(--accent-coral)';
+            }
+            if (pill) {
+              pill.textContent = 'BLOCKED (0ms)';
+              pill.style.background = 'var(--accent-coral)';
+            }
+            if (badge) {
+              badge.textContent = 'BLAST RADIUS: All 3 Couriers Killed!';
+              badge.style.borderColor = 'var(--accent-coral)';
+              badge.style.background = 'var(--accent-coral)';
+              badge.style.color = '#ffffff';
+            }
+            // Mute / block healthy couriers A & C to visualize blast radius
+            [courierA, courierC].forEach(el => {
+              if (el) {
+                el.style.opacity = '0.45';
+                el.style.borderColor = 'var(--accent-coral)';
+              }
+            });
+            if (logBox) {
+              logBox.style.borderColor = 'var(--accent-coral)';
+              logBox.style.background = 'var(--accent-coral-dim)';
+            }
+            if (logTitle) {
+              logTitle.textContent = 'Checkout #4 Result:';
+              logTitle.style.color = 'var(--accent-coral)';
+            }
+            if (logDetail) {
+              logDetail.innerHTML = ' <strong>“No shipping quotes available: shared circuit open.”</strong> Customer cart abandoned!';
+            }
+          }, 3600));
+        }
+
+        runCycle();
+        s11AnimTimer = setInterval(runCycle, 6200);
+      }
+
+      // -------------------------------------------------------------
+      // Slide 12: Fine-Grained Breaker & Probe Recovery Looped Animation
+      // -------------------------------------------------------------
+      let s12AnimTimer = null;
+      let s12Timeouts = [];
+
+      function clearS12Timeouts() {
+        s12Timeouts.forEach(t => clearTimeout(t));
+        s12Timeouts = [];
+      }
+
+      function stopSlide12Loop() {
+        if (s12AnimTimer) { clearInterval(s12AnimTimer); s12AnimTimer = null; }
+        clearS12Timeouts();
+      }
+
+      function startSlide12Loop() {
+        stopAllAnimations();
+        const s12 = document.querySelector('section[data-index="12"]');
+        if (!s12 || !s12.classList.contains('active')) return;
+
+        const badge = document.getElementById('s12-status-badge');
+        const cardB = document.getElementById('s12-card-b');
+        const stateB = document.getElementById('s12-state-b');
+        const quoteB = document.getElementById('s12-quote-b');
+        const logBox = document.getElementById('s12-log-box');
+        const logText = document.getElementById('s12-log-text');
+
+        const step1 = document.getElementById('s12-step-1');
+        const step2 = document.getElementById('s12-step-2');
+        const step3 = document.getElementById('s12-step-3');
+        const step4 = document.getElementById('s12-step-4');
+
+        function resetSteps() {
+          [step1, step2, step3, step4].forEach(s => {
+            if (s) {
+              s.className = 'step-box';
+              s.style.background = '#ffffff';
+              s.style.borderColor = 'var(--border-card)';
+              s.style.color = 'var(--text-body)';
+            }
+          });
+        }
+
+        function resetVisuals() {
+          resetSteps();
+          if (badge) {
+            badge.textContent = 'Phase: Isolated Failure (B is OPEN)';
+            badge.style.borderColor = 'var(--accent-coral)';
+            badge.style.background = 'var(--accent-coral-dim)';
+            badge.style.color = 'var(--accent-coral)';
+          }
+          if (cardB) {
+            cardB.style.borderTopColor = 'var(--accent-coral)';
+            cardB.style.background = 'var(--accent-coral-dim)';
+          }
+          if (stateB) {
+            stateB.textContent = '[OPEN]';
+            stateB.style.color = 'var(--accent-coral)';
+          }
+          if (quoteB) {
+            quoteB.textContent = 'Fast-fail (0ms) ✗';
+            quoteB.style.color = 'var(--accent-coral)';
+          }
+          if (logBox) {
+            logBox.style.background = 'var(--accent-green-dim)';
+            logBox.style.borderColor = 'var(--accent-green)';
+          }
+          if (logText) {
+            logText.textContent = '“Quotes available from Courier A ($15) and Courier C ($18.50). Courier B isolated.” Sale completes!';
+          }
+        }
+
+        function runCycle() {
+          const s12Active = document.querySelector('section[data-index="12"]');
+          if (!s12Active || !s12Active.classList.contains('active')) {
+            stopSlide12Loop();
+            return;
+          }
+          clearS12Timeouts();
+          resetVisuals();
+
+          // Step 1: Cooldown passes -> B enters HALF-OPEN
+          s12Timeouts.push(setTimeout(() => {
+            if (step1) {
+              step1.className = 'step-box warn';
+              step1.style.borderColor = 'var(--accent-amber)';
+              step1.style.background = 'var(--accent-amber-dim)';
+              step1.style.color = 'var(--text-main)';
+            }
+            if (stateB) {
+              stateB.textContent = '[HALF-OPEN]';
+              stateB.style.color = 'var(--accent-amber)';
+            }
+            if (cardB) {
+              cardB.style.borderTopColor = 'var(--accent-amber)';
+              cardB.style.background = 'var(--accent-amber-dim)';
+            }
+            if (quoteB) {
+              quoteB.textContent = 'Cooldown Expired (Testing)';
+              quoteB.style.color = 'var(--text-muted)';
+            }
+            if (badge) {
+              badge.textContent = 'Phase: Cooldown Expired → Testing 1 Probe';
+              badge.style.borderColor = 'var(--accent-amber)';
+              badge.style.background = 'var(--accent-amber-dim)';
+              badge.style.color = 'var(--text-main)';
+            }
+          }, 1400));
+
+          // Step 2: Single probe admitted
+          s12Timeouts.push(setTimeout(() => {
+            if (step2) {
+              step2.className = 'step-box warn';
+              step2.style.borderColor = 'var(--accent-amber)';
+              step2.style.background = 'var(--accent-amber-dim)';
+              step2.style.color = 'var(--text-main)';
+            }
+            if (quoteB) {
+              quoteB.textContent = 'Sending Probe Call...';
+            }
+          }, 2600));
+
+          // Step 3: Probe succeeds -> B transitions to CLOSED
+          s12Timeouts.push(setTimeout(() => {
+            if (step3) {
+              step3.className = 'step-box good';
+              step3.style.borderColor = 'var(--accent-green)';
+              step3.style.background = 'var(--accent-green-dim)';
+              step3.style.color = 'var(--text-main)';
+            }
+            if (cardB) {
+              cardB.style.borderTopColor = 'var(--accent-green)';
+              cardB.style.background = '#ffffff';
+            }
+            if (stateB) {
+              stateB.textContent = '[CLOSED]';
+              stateB.style.color = 'var(--accent-green)';
+            }
+            if (quoteB) {
+              quoteB.textContent = 'Quotes: $22.00 ✓ (200 OK)';
+              quoteB.style.color = 'var(--accent-green)';
+            }
+            if (badge) {
+              badge.textContent = 'Phase: Probe Succeeded → B Restored!';
+              badge.style.borderColor = 'var(--accent-green)';
+              badge.style.background = 'var(--accent-green-dim)';
+              badge.style.color = 'var(--text-main)';
+            }
+          }, 3800));
+
+          // Step 4: All 3 couriers available
+          s12Timeouts.push(setTimeout(() => {
+            if (step4) {
+              step4.className = 'step-box good';
+              step4.style.borderColor = 'var(--accent-green)';
+              step4.style.background = 'var(--accent-green-dim)';
+              step4.style.color = 'var(--text-main)';
+            }
+            if (logText) {
+              logText.textContent = '“All 3 couriers available: A ($15), B ($22), C ($18.50). Full redundancy restored!”';
+            }
+          }, 4800));
+        }
+
+        runCycle();
+        s12AnimTimer = setInterval(runCycle, 6800);
+      }
+
+      function stopAllAnimations() {
+        stopSlide2Loop();
+        stopSlide5Loop();
+        stopSlide6Loop();
+        stopSlide10Loop();
+        stopSlide11Loop();
+        stopSlide12Loop();
+        if (s8AnimTimer) { clearInterval(s8AnimTimer); s8AnimTimer = null; }
+        if (s9AnimTimer) { clearInterval(s9AnimTimer); s9AnimTimer = null; }
+        const p8 = document.getElementById('s8-particles-layer');
+        if (p8) p8.innerHTML = '';
+        const p9 = document.getElementById('s9-particles-layer');
+        if (p9) p9.innerHTML = '';
+      }
+
+      function startSlide2Loop() {
+        stopAllAnimations();
+        const s2 = document.querySelector('section[data-index="2"]');
+        if (!s2 || !s2.classList.contains('active')) return;
+
+        const leftBadge = document.getElementById('s2-left-badge');
+        const rightBadge = document.getElementById('s2-right-badge');
+        const cacheBox = document.getElementById('s2-cache-box');
+        const cacheSub = document.getElementById('s2-cache-sub');
+        const leftLayer = document.getElementById('s2-left-particles');
+        const rightLayer = document.getElementById('s2-right-particles');
+
+        const lSteps = [
+          document.getElementById('s2-left-step-1'),
+          document.getElementById('s2-left-step-2'),
+          document.getElementById('s2-left-step-3')
+        ];
+        const rSteps = [
+          document.getElementById('s2-right-step-1'),
+          document.getElementById('s2-right-step-2'),
+          document.getElementById('s2-right-step-3')
+        ];
+
+        function resetVisuals() {
+          if (leftLayer) leftLayer.innerHTML = '';
+          if (rightLayer) rightLayer.innerHTML = '';
+          if (leftBadge) {
+            leftBadge.textContent = 'Req #1: Fetching DB';
+            leftBadge.style.color = 'var(--accent-coral)';
+          }
+          if (rightBadge) {
+            rightBadge.textContent = 'Req #1: Cache MISS';
+            rightBadge.style.color = 'var(--accent-amber)';
+          }
+          if (cacheBox) {
+            cacheBox.setAttribute('stroke', '#cbd5e1');
+            cacheBox.setAttribute('fill', '#ffffff');
+          }
+          if (cacheSub) {
+            cacheSub.textContent = 'Cold / Empty';
+            cacheSub.style.fill = 'var(--text-dim)';
+          }
+          lSteps.forEach(s => { if (s) { s.style.boxShadow = ''; s.style.borderColor = ''; } });
+          rSteps.forEach(s => { if (s) { s.style.boxShadow = ''; s.style.borderColor = ''; } });
+        }
+
+        function createDot(layer, color, x, y) {
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '7');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))');
+          layer.appendChild(circle);
+          return circle;
+        }
+
+        function animateLeftReq(reqNum, delay) {
+          s2Timeouts.push(setTimeout(() => {
+            const s2Active = document.querySelector('section[data-index="2"]');
+            if (!s2Active || !s2Active.classList.contains('active')) return;
+
+            if (leftBadge) {
+              leftBadge.textContent = 'Req #' + reqNum + ': Fetching DB (500ms)';
+            }
+            lSteps.forEach((s, idx) => {
+              if (s) {
+                if (idx === reqNum - 1) {
+                  s.style.boxShadow = '0 0 0 2px var(--accent-coral)';
+                  s.style.borderColor = 'var(--accent-coral)';
+                } else {
+                  s.style.boxShadow = '';
+                  s.style.borderColor = '';
+                }
+              }
+            });
+
+            if (!leftLayer) return;
+            const dot = createDot(leftLayer, '#ff5960', 50, 45);
+            const startTime = performance.now();
+            const forwardDuration = 450;
+            const returnDuration = 350;
+
+            function step(now) {
+              const el = now - startTime;
+              if (el < forwardDuration) {
+                const p = el / forwardDuration;
+                dot.setAttribute('cx', 50 + (477 - 50) * p);
+                requestAnimationFrame(step);
+              } else if (el < forwardDuration + returnDuration) {
+                const p = (el - forwardDuration) / returnDuration;
+                dot.setAttribute('cx', 477 - (477 - 50) * p);
+                requestAnimationFrame(step);
+              } else {
+                dot.remove();
+              }
+            }
+            requestAnimationFrame(step);
+          }, delay));
+        }
+
+        function animateRightReq(reqNum, delay, isMiss) {
+          s2Timeouts.push(setTimeout(() => {
+            const s2Active = document.querySelector('section[data-index="2"]');
+            if (!s2Active || !s2Active.classList.contains('active')) return;
+
+            rSteps.forEach((s, idx) => {
+              if (s) {
+                if (idx === reqNum - 1) {
+                  s.style.boxShadow = isMiss ? '0 0 0 2px var(--accent-amber)' : '0 0 0 2px var(--accent-green)';
+                  s.style.borderColor = isMiss ? 'var(--accent-amber)' : 'var(--accent-green)';
+                } else {
+                  s.style.boxShadow = '';
+                  s.style.borderColor = '';
+                }
+              }
+            });
+
+            if (isMiss) {
+              if (rightBadge) {
+                rightBadge.textContent = 'Req #1: Cache MISS → Fetching DB';
+                rightBadge.style.color = 'var(--accent-amber)';
+              }
+              if (cacheSub) {
+                cacheSub.textContent = 'MISS! (Not in RAM)';
+                cacheSub.style.fill = 'var(--accent-amber)';
+              }
+              if (!rightLayer) return;
+              const dot = createDot(rightLayer, '#ffca3d', 50, 45);
+              const startTime = performance.now();
+              const toDb = 450;
+              const returnToClient = 350;
+
+              function step(now) {
+                const el = now - startTime;
+                if (el < toDb) {
+                  const p = el / toDb;
+                  dot.setAttribute('cx', 50 + (477 - 50) * p);
+                  requestAnimationFrame(step);
+                } else if (el < toDb + returnToClient) {
+                  const p = (el - toDb) / returnToClient;
+                  dot.setAttribute('cx', 477 - (477 - 50) * p);
+                  if (p > 0.5 && cacheBox && cacheSub) {
+                    cacheBox.setAttribute('stroke', '#8cc927');
+                    cacheBox.setAttribute('fill', '#f5fae9');
+                    cacheSub.textContent = 'Warm / In RAM';
+                    cacheSub.style.fill = '#8cc927';
+                  }
+                  requestAnimationFrame(step);
+                } else {
+                  dot.remove();
+                }
+              }
+              requestAnimationFrame(step);
+            } else {
+              if (rightBadge) {
+                rightBadge.textContent = 'Req #' + reqNum + ': Cache HIT (<1ms)';
+                rightBadge.style.color = 'var(--accent-green)';
+              }
+              if (cacheSub) {
+                cacheSub.textContent = 'HIT! Returned from RAM';
+                cacheSub.style.fill = '#8cc927';
+              }
+              if (!rightLayer) return;
+              const dot = createDot(rightLayer, '#8cc927', 50, 45);
+              const startTime = performance.now();
+              const toCache = 160;
+              const returnToClient = 160;
+
+              function step(now) {
+                const el = now - startTime;
+                if (el < toCache) {
+                  const p = el / toCache;
+                  dot.setAttribute('cx', 50 + (260 - 50) * p);
+                  requestAnimationFrame(step);
+                } else if (el < toCache + returnToClient) {
+                  const p = (el - toCache) / returnToClient;
+                  dot.setAttribute('cx', 260 - (260 - 50) * p);
+                  requestAnimationFrame(step);
+                } else {
+                  dot.remove();
+                }
+              }
+              requestAnimationFrame(step);
+            }
+          }, delay));
+        }
+
+        function runCycle() {
+          const s2Active = document.querySelector('section[data-index="2"]');
+          if (!s2Active || !s2Active.classList.contains('active')) {
+            stopSlide2Loop();
+            return;
+          }
+          clearS2Timeouts();
+          resetVisuals();
+
+          animateLeftReq(1, 100);
+          animateRightReq(1, 100, true);
+
+          animateLeftReq(2, 1300);
+          animateRightReq(2, 1300, false);
+
+          animateLeftReq(3, 2500);
+          animateRightReq(3, 2500, false);
+        }
+
+        runCycle();
+        s2AnimTimer = setInterval(runCycle, 4000);
+      }
+
+      function startSlide8Loop() {
+        stopAllAnimations();
+        const targets = ['A', 'B', 'C'];
+        const colors = { A: '#1c83c3', B: '#8cc927', C: '#6a4b91' };
+        let reqIndex = 0;
+        let cA = 0, cB = 0, cC = 0;
+
+        const countAEl = document.getElementById('s8-count-a');
+        const countBEl = document.getElementById('s8-count-b');
+        const countCEl = document.getElementById('s8-count-c');
+        const badge = document.getElementById('s8-status-badge');
+        const sub = document.getElementById('s8-lb-sub');
+        const layer = document.getElementById('s8-particles-layer');
+        const tokens = document.querySelectorAll('.s8-tok');
+
+        function resetCounts() {
+          cA = 0; cB = 0; cC = 0;
+          if (countAEl) countAEl.textContent = '0';
+          if (countBEl) countBEl.textContent = '0';
+          if (countCEl) countCEl.textContent = '0';
+          tokens.forEach(tok => {
+            tok.style.background = '#ffffff';
+            tok.style.color = 'var(--text-muted)';
+            tok.style.borderColor = 'var(--border-card)';
+          });
+        }
+        resetCounts();
+
+        function spawn() {
+          const s8 = document.querySelector('section[data-index="8"]');
+          if (!s8 || !s8.classList.contains('active')) {
+            stopLoadBalancerAnimations();
+            return;
+          }
+          reqIndex++;
+          const curReq = ((reqIndex - 1) % 12) + 1;
+          const target = targets[(curReq - 1) % 3];
+          const color = colors[target];
+
+          if (badge) {
+            badge.innerHTML = 'Routing: Req #' + curReq + ' &rarr; <span style="color:'+color+'">Node ' + target + '</span>';
+          }
+          if (sub) {
+            sub.textContent = '→ Node ' + target;
+            sub.style.fill = color;
+          }
+
+          tokens.forEach(tok => {
+            if (tok.getAttribute('data-i') === String(curReq)) {
+              tok.style.background = color;
+              tok.style.color = '#ffffff';
+              tok.style.borderColor = color;
+            }
+          });
+
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '8');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', '125');
+          circle.setAttribute('cy', '150');
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
+          if (layer) layer.appendChild(circle);
+
+          const startTime = performance.now();
+          const t1 = 350;
+          const t2 = 450;
+
+          function step(now) {
+            const el = now - startTime;
+            if (el < t1) {
+              const p = el / t1;
+              circle.setAttribute('cx', 125 + (380 - 125) * p);
+              circle.setAttribute('cy', 150);
+              requestAnimationFrame(step);
+            } else if (el < t1 + t2) {
+              const p = (el - t1) / t2;
+              let pt;
+              if (target === 'B') {
+                pt = { x: 380 + (620 - 380) * p, y: 150 };
+              } else if (target === 'A') {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:50}, {x:620,y:50});
+              } else {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:250}, {x:620,y:250});
+              }
+              circle.setAttribute('cx', pt.x);
+              circle.setAttribute('cy', pt.y);
+              requestAnimationFrame(step);
+            } else {
+              circle.remove();
+              if (target === 'A') { cA++; if (countAEl) countAEl.textContent = cA; }
+              else if (target === 'B') { cB++; if (countBEl) countBEl.textContent = cB; }
+              else if (target === 'C') { cC++; if (countCEl) countCEl.textContent = cC; }
+
+              if (curReq === 12) {
+                setTimeout(resetCounts, 800);
+              }
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        spawn();
+        s8AnimTimer = setInterval(spawn, 600);
+      }
+
+      function startSlide9Loop() {
+        stopAllAnimations();
+        const schedule = ['A', 'A', 'A', 'B', 'B', 'C', 'A', 'A', 'A', 'B', 'B', 'C'];
+        const colors = { A: '#1c83c3', B: '#8cc927', C: '#6a4b91' };
+        let reqIndex = 0;
+        let cA = 0, cB = 0, cC = 0;
+
+        const countAEl = document.getElementById('s9-count-a');
+        const countBEl = document.getElementById('s9-count-b');
+        const countCEl = document.getElementById('s9-count-c');
+        const badge = document.getElementById('s9-status-badge');
+        const sub = document.getElementById('s9-lb-sub');
+        const layer = document.getElementById('s9-particles-layer');
+        const tokens = document.querySelectorAll('.s9-tok');
+
+        function resetCounts() {
+          cA = 0; cB = 0; cC = 0;
+          if (countAEl) countAEl.textContent = '0';
+          if (countBEl) countBEl.textContent = '0';
+          if (countCEl) countCEl.textContent = '0';
+          tokens.forEach(tok => {
+            tok.style.background = '#ffffff';
+            tok.style.color = 'var(--text-muted)';
+            tok.style.borderColor = 'var(--border-card)';
+          });
+        }
+        resetCounts();
+
+        function spawn() {
+          const s9 = document.querySelector('section[data-index="9"]');
+          if (!s9 || !s9.classList.contains('active')) {
+            stopLoadBalancerAnimations();
+            return;
+          }
+          reqIndex++;
+          const curReq = ((reqIndex - 1) % 12) + 1;
+          const target = schedule[curReq - 1];
+          const color = colors[target];
+
+          if (badge) {
+            badge.innerHTML = 'Routing: Req #' + curReq + ' &rarr; <span style="color:'+color+'">Node ' + target + '</span>';
+          }
+          if (sub) {
+            sub.textContent = '→ Node ' + target;
+            sub.style.fill = color;
+          }
+
+          tokens.forEach(tok => {
+            if (tok.getAttribute('data-i') === String(curReq)) {
+              tok.style.background = color;
+              tok.style.color = '#ffffff';
+              tok.style.borderColor = color;
+            }
+          });
+
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('r', '8');
+          circle.setAttribute('fill', color);
+          circle.setAttribute('cx', '125');
+          circle.setAttribute('cy', '150');
+          circle.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))');
+          if (layer) layer.appendChild(circle);
+
+          const startTime = performance.now();
+          const t1 = 350;
+          const t2 = 450;
+
+          function step(now) {
+            const el = now - startTime;
+            if (el < t1) {
+              const p = el / t1;
+              circle.setAttribute('cx', 125 + (380 - 125) * p);
+              circle.setAttribute('cy', 150);
+              requestAnimationFrame(step);
+            } else if (el < t1 + t2) {
+              const p = (el - t1) / t2;
+              let pt;
+              if (target === 'B') {
+                pt = { x: 380 + (620 - 380) * p, y: 150 };
+              } else if (target === 'A') {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:50}, {x:620,y:50});
+              } else {
+                pt = getBezierPoint(p, {x:380,y:150}, {x:530,y:150}, {x:530,y:250}, {x:620,y:250});
+              }
+              circle.setAttribute('cx', pt.x);
+              circle.setAttribute('cy', pt.y);
+              requestAnimationFrame(step);
+            } else {
+              circle.remove();
+              if (target === 'A') { cA++; if (countAEl) countAEl.textContent = cA; }
+              else if (target === 'B') { cB++; if (countBEl) countBEl.textContent = cB; }
+              else if (target === 'C') { cC++; if (countCEl) countCEl.textContent = cC; }
+
+              if (curReq === 12) {
+                setTimeout(resetCounts, 800);
+              }
+            }
+          }
+          requestAnimationFrame(step);
+        }
+
+        spawn();
+        s9AnimTimer = setInterval(spawn, 600);
+      }
+
+      function nextSlide() {
+        if (currentIndex < totalSlides - 1) {
+          goToSlide(currentIndex + 1);
+        }
+      }
+
+      function prevSlide() {
+        if (currentIndex > 0) {
+          goToSlide(currentIndex - 1);
+        }
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        }
+      }
+
+      function toggleNotes() {
+        notesPanel.classList.toggle('open');
+      }
+
+      function replayCurrentSlide() {
+        const activeSlide = slides[currentIndex];
+        const cards = activeSlide.querySelectorAll('.card');
+        cards.forEach((card) => {
+          card.style.transform = 'scale(0.98)';
+          setTimeout(() => { card.style.transform = ''; }, 150);
+        });
+        if (currentIndex === 1) {
+          startSlide2Loop();
+        } else if (currentIndex === 4) {
+          startSlide5Loop();
+        } else if (currentIndex === 5) {
+          startSlide6Loop();
+        } else if (currentIndex === 7) {
+          startSlide8Loop();
+        } else if (currentIndex === 8) {
+          startSlide9Loop();
+        } else if (currentIndex === 9) {
+          startSlide10Loop();
+        } else if (currentIndex === 10) {
+          startSlide11Loop();
+        } else if (currentIndex === 11) {
+          startSlide12Loop();
+        }
+      }
+
+      // 3. Keyboard Event Handlers
+      window.addEventListener('keydown', function(e) {
+        if (['ArrowRight', 'ArrowLeft', 'Space', 'PageDown', 'PageUp'].includes(e.code)) {
+          e.preventDefault();
+        }
+
+        switch (e.code) {
+          case 'ArrowRight':
+          case 'Space':
+          case 'PageDown':
+            nextSlide();
+            break;
+          case 'ArrowLeft':
+          case 'PageUp':
+            prevSlide();
+            break;
+          case 'KeyF':
+            toggleFullscreen();
+            break;
+          case 'KeyS':
+            toggleNotes();
+            break;
+          case 'KeyR':
+            replayCurrentSlide();
+            break;
+          case 'Home':
+            goToSlide(0);
+            break;
+          case 'End':
+            goToSlide(totalSlides - 1);
+            break;
+        }
+      });
+
+      // 4. Click & Note Listeners
+      if (notesCloseBtn) {
+        notesCloseBtn.addEventListener('click', toggleNotes);
+      }
+
+      // Initialize slide from hash or default to 0
+      let initialSlide = 0;
+      try {
+        const h = window.location.hash;
+        if (h) {
+          const n = parseInt(h.replace('#', ''), 10);
+          if (!isNaN(n) && n >= 1 && n <= totalSlides) initialSlide = n - 1;
+        }
+      } catch (e) {}
+      goToSlide(initialSlide);
+
+    })();
+  </script>
+</body>
+</html>
